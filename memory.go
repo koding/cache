@@ -5,6 +5,8 @@ import (
 	"time"
 )
 
+var zeroTTL = time.Duration(0)
+
 type MemoryCache struct {
 	// Mutex is used for handling the concurrent
 	// read/write requests for cache
@@ -20,10 +22,16 @@ type MemoryCache struct {
 }
 
 // NewMemoryCache creates an inmemory cache system
+// Which everytime will return the true value about a cache hit
+func NewMemory() *MemoryCache {
+	return NewMemoryWithTTL(zeroTTL)
+}
+
+// NewMemoryCache creates an inmemory cache system
 // Which everytime will return the true values about a cache hit
 // and never will leak memory
 // ttl is used for expiration of a key from cache
-func NewMemory(ttl time.Duration) *MemoryCache {
+func NewMemoryWithTTL(ttl time.Duration) *MemoryCache {
 	return &MemoryCache{
 		items:  map[string]interface{}{},
 		setAts: map[string]time.Time{},
@@ -87,6 +95,10 @@ func (r *MemoryCache) isValid(key string) bool {
 	setAt, ok := r.setAts[key]
 	if !ok {
 		return false
+	}
+
+	if r.ttl == zeroTTL {
+		return true
 	}
 
 	return setAt.Add(r.ttl).After(time.Now())
