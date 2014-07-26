@@ -1,4 +1,4 @@
-package memory
+package cache
 
 import (
 	"sync"
@@ -23,7 +23,7 @@ type MemoryCache struct {
 // Which everytime will return the true values about a cache hit
 // and never will leak memory
 // ttl is used for expiration of a key from cache
-func NewMemoryCache(ttl time.Duration) *MemoryCache {
+func NewMemory(ttl time.Duration) *MemoryCache {
 	return &MemoryCache{
 		items:  map[string]interface{}{},
 		setAts: map[string]time.Time{},
@@ -47,16 +47,19 @@ func (r *MemoryCache) StartGC(gcInterval time.Duration) {
 
 // Get returns a value of a given key if it exists
 // and valid for the time being
-func (r *MemoryCache) Get(key string) (interface{}, bool) {
+func (r *MemoryCache) Get(key string) (interface{}, error) {
 	r.Lock()
 	defer r.Unlock()
 
 	if !r.isValid(key) {
 		r.delete(key)
-		return nil, false
+		return nil, ErrNotFound
 	}
 	value, ok := r.items[key]
-	return value, ok
+	if !ok {
+		return nil, ErrNotFound
+	}
+	return value, nil
 }
 
 // Set will persist a value to the cache or
@@ -85,5 +88,6 @@ func (r *MemoryCache) isValid(key string) bool {
 	if !ok {
 		return false
 	}
+
 	return setAt.Add(r.ttl).After(time.Now())
 }
