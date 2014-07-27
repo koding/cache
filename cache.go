@@ -5,11 +5,11 @@ package cache
 type Cache interface {
 	// Get returns single item from the backend if the requested item is not
 	// found, returns NotFound err
-	Get(key interface{}) (interface{}, error)
+	Get(key string) (interface{}, error)
 
 	// Set sets a single item to the backend
-	Set(item interface{}) error
+	Set(key string, value interface{}) error
 
 	// Delete deletes single item from backend
-	Delete(key interface{}) error
+	Delete(key string) error
 }

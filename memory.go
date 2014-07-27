@@ -72,18 +72,20 @@ func (r *MemoryCache) Get(key string) (interface{}, error) {
 
 // Set will persist a value to the cache or
 // override existing one with the new one
-func (r *MemoryCache) Set(key string, resp interface{}) {
+func (r *MemoryCache) Set(key string, resp interface{}) error {
 	r.Lock()
 	defer r.Unlock()
 	r.items[key] = resp
 	r.setAts[key] = time.Now()
+	return nil
 }
 
 // Delete deletes a given key if exists
-func (r *MemoryCache) Delete(key string) {
+func (r *MemoryCache) Delete(key string) error {
 	r.Lock()
 	defer r.Unlock()
 	r.delete(key)
+	return nil
 }
 
 func (r *MemoryCache) delete(key string) {
