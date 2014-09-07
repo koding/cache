@@ -1,4 +1,5 @@
-# Cache [![GoDoc](https://godoc.org/github.com/koding/cache?status.svg)](https://godoc.org/github.com/koding/cache)
+# Cache [![GoDoc](https://godoc.org/github.com/koding/cache?status.svg)](https://godoc.org/github.com/koding/cache) [![Build Status](https://travis-ci.org/koding/cache.svg?branch=master)](https://travis-ci.org/koding/cache)
+
 
 Cache is a backend provider for common use cases
 
