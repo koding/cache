@@ -16,3 +16,17 @@ Import it with:
 ```go
 import "github.com/koding/cache"
 ```
+
+
+Example
+```go
+
+// create a cache with 2 second TTL
+cache := NewMemoryWithTTL(2 * time.Second)
+// start garbage collection for expired keys
+cache.StartGC(time.Millisecond * 10)
+// set item
+err := cache.Set("test_key", "test_data")
+// get item
+data, err := cache.Get("test_key")
+```
