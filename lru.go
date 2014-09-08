@@ -23,7 +23,7 @@ type kv struct {
 }
 
 // NewLRUCache creates a new LRU cache struct for further cache operations
-func NewLRUCache(size int) *LRUCache {
+func NewLRUCache(size int) Cache {
 	if size < 1 {
 		panic("invalid cache size")
 	}
