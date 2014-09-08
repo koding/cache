@@ -5,9 +5,9 @@ import (
 	"container/list"
 )
 
-// LRUCache Discards the least recently used items first. This algorithm
+// LRU Discards the least recently used items first. This algorithm
 // requires keeping track of what was used when.
-type LRUCache struct {
+type LRU struct {
 	// list holds all items in a linked list, for finding the `tail` of the list
 	list *list.List
 
@@ -23,13 +23,13 @@ type kv struct {
 	v interface{}
 }
 
-// NewLRUCache creates a new LRU cache struct for further cache operations
-func NewLRUCache(size int) Cache {
+// NewLRU creates a new LRU cache struct for further cache operations
+func NewLRU(size int) Cache {
 	if size < 1 {
 		panic("invalid cache size")
 	}
 
-	return &LRUCache{
+	return &LRU{
 		list:  list.New(),
 		items: NewMemoryNoTS(),
 		size:  size,
@@ -39,7 +39,7 @@ func NewLRUCache(size int) Cache {
 // Get returns the value of a given key if it exists, every get item will be
 // moved to the head of the linked list for keeping track of least recent used
 // item
-func (l *LRUCache) Get(key string) (interface{}, error) {
+func (l *LRU) Get(key string) (interface{}, error) {
 	res, err := l.items.Get(key)
 	if err != nil {
 		return nil, err
@@ -56,7 +56,7 @@ func (l *LRUCache) Get(key string) (interface{}, error) {
 // be moved or prepended to the head of the linked list for keeping track of
 // least recent used item. When the cache is full, last item of the linked list
 // will be evicted from the cache
-func (l *LRUCache) Set(key string, val interface{}) error {
+func (l *LRU) Set(key string, val interface{}) error {
 	// try to get item
 	res, err := l.items.Get(key)
 	if err != nil && err != ErrNotFound {
@@ -96,7 +96,7 @@ func (l *LRUCache) Set(key string, val interface{}) error {
 
 // Delete deletes the given key-value pair from cache, this function doesnt
 // return an error if item is not in the cache
-func (l *LRUCache) Delete(key string) error {
+func (l *LRU) Delete(key string) error {
 	res, err := l.items.Get(key)
 	if err != nil && err != ErrNotFound {
 		return err
@@ -113,7 +113,7 @@ func (l *LRUCache) Delete(key string) error {
 	return l.removeElem(elem)
 }
 
-func (l *LRUCache) removeElem(e *list.Element) error {
+func (l *LRU) removeElem(e *list.Element) error {
 	l.list.Remove(e)
 	return l.items.Delete(e.Value.(*kv).k)
 }

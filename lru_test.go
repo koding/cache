@@ -2,13 +2,13 @@ package cache
 
 import "testing"
 
-func TestLRUCacheGetSet(t *testing.T) {
-	cache := NewLRUCache(2)
+func TestLRUGetSet(t *testing.T) {
+	cache := NewLRU(2)
 	testCacheGetSet(t, cache)
 }
 
-func TestLRUCacheEviction(t *testing.T) {
-	cache := NewLRUCache(2)
+func TestLRUEviction(t *testing.T) {
+	cache := NewLRU(2)
 	testCacheGetSet(t, cache)
 
 	err := cache.Set("test_key3", "test_data3")
@@ -22,7 +22,7 @@ func TestLRUCacheEviction(t *testing.T) {
 	}
 }
 
-func TestLRUCacheDelete(t *testing.T) {
-	cache := NewLRUCache(2)
+func TestLRUDelete(t *testing.T) {
+	cache := NewLRU(2)
 	testCacheDelete(t, cache)
 }
