@@ -2,7 +2,8 @@ package cache
 
 import "sync"
 
-type MemoryCache struct {
+// Memory provides an inmemory caching mechanism
+type Memory struct {
 	// Mutex is used for handling the concurrent
 	// read/write requests for cache
 	sync.Mutex
@@ -11,34 +12,33 @@ type MemoryCache struct {
 	cache Cache
 }
 
-// NewMemoryCache creates an inmemory cache system
+// NewMemory creates an inmemory cache system
 // Which everytime will return the true value about a cache hit
-func NewMemory() *MemoryCache {
-	return &MemoryCache{
+func NewMemory() Cache {
+	return &Memory{
 		cache: NewMemoryNoTS(),
 	}
 }
 
-// Get returns a value of a given key if it exists
-// and valid for the time being
-func (r *MemoryCache) Get(key string) (interface{}, error) {
+// Get returns the value of a given key if it exists
+func (r *Memory) Get(key string) (interface{}, error) {
 	r.Lock()
 	defer r.Unlock()
 
 	return r.cache.Get(key)
 }
 
-// Set will persist a value to the cache or
-// override existing one with the new one
-func (r *MemoryCache) Set(key string, value interface{}) error {
+// Set sets a value to the cache or overrides existing one with the given value
+func (r *Memory) Set(key string, value interface{}) error {
 	r.Lock()
 	defer r.Unlock()
 
 	return r.cache.Set(key, value)
 }
 
-// Delete deletes a given key if exists
-func (r *MemoryCache) Delete(key string) error {
+// Delete deletes the given key-value pair from cache, this function doesnt
+// return an error if item is not in the cache
+func (r *Memory) Delete(key string) error {
 	r.Lock()
 	defer r.Unlock()
 
