@@ -1,3 +1,4 @@
+// Package cache provides basic caching mechanisms for Go(lang) projects.
 package cache
 
 // Cache is the contract for all of the cache backends that are supported by
