@@ -8,13 +8,15 @@ import (
 
 var zeroTTL = time.Duration(0)
 
-type MemoryCacheTTL struct {
+// MemoryTTL holds the required variables to compose an in memory cache system
+// which also provides expiring key mechanism
+type MemoryTTL struct {
 	// Mutex is used for handling the concurrent
 	// read/write requests for cache
 	sync.Mutex
 
 	// cache holds the cache data
-	cache *MemoryCacheNoTS
+	cache *MemoryNoTS
 
 	// setAts holds the time that related item's set at
 	setAts map[string]time.Time
@@ -26,12 +28,12 @@ type MemoryCacheTTL struct {
 	gcInterval time.Duration
 }
 
-// NewMemoryCache creates an inmemory cache system
+// NewMemoryWithTTL creates an inmemory cache system
 // Which everytime will return the true values about a cache hit
 // and never will leak memory
 // ttl is used for expiration of a key from cache
-func NewMemoryWithTTL(ttl time.Duration) *MemoryCacheTTL {
-	return &MemoryCacheTTL{
+func NewMemoryWithTTL(ttl time.Duration) *MemoryTTL {
+	return &MemoryTTL{
 		cache:  NewMemoryNoTS(),
 		setAts: map[string]time.Time{},
 		ttl:    ttl,
@@ -39,11 +41,11 @@ func NewMemoryWithTTL(ttl time.Duration) *MemoryCacheTTL {
 }
 
 // StartGC starts the garbage collection process in a go routine
-func (r *MemoryCacheTTL) StartGC(gcInterval time.Duration) {
+func (r *MemoryTTL) StartGC(gcInterval time.Duration) {
 	r.gcInterval = gcInterval
 	go func() {
 		for _ = range time.Tick(gcInterval) {
-			for key, _ := range r.cache.items {
+			for key := range r.cache.items {
 				if !r.isValid(key) {
 					r.Delete(key)
 				}
@@ -54,7 +56,7 @@ func (r *MemoryCacheTTL) StartGC(gcInterval time.Duration) {
 
 // Get returns a value of a given key if it exists
 // and valid for the time being
-func (r *MemoryCacheTTL) Get(key string) (interface{}, error) {
+func (r *MemoryTTL) Get(key string) (interface{}, error) {
 	r.Lock()
 	defer r.Unlock()
 
@@ -73,7 +75,7 @@ func (r *MemoryCacheTTL) Get(key string) (interface{}, error) {
 
 // Set will persist a value to the cache or
 // override existing one with the new one
-func (r *MemoryCacheTTL) Set(key string, value interface{}) error {
+func (r *MemoryTTL) Set(key string, value interface{}) error {
 	r.Lock()
 	defer r.Unlock()
 
@@ -83,7 +85,7 @@ func (r *MemoryCacheTTL) Set(key string, value interface{}) error {
 }
 
 // Delete deletes a given key if exists
-func (r *MemoryCacheTTL) Delete(key string) error {
+func (r *MemoryTTL) Delete(key string) error {
 	r.Lock()
 	defer r.Unlock()
 
@@ -91,12 +93,12 @@ func (r *MemoryCacheTTL) Delete(key string) error {
 	return nil
 }
 
-func (r *MemoryCacheTTL) delete(key string) {
+func (r *MemoryTTL) delete(key string) {
 	r.cache.Delete(key)
 	delete(r.setAts, key)
 }
 
-func (r *MemoryCacheTTL) isValid(key string) bool {
+func (r *MemoryTTL) isValid(key string) bool {
 	setAt, ok := r.setAts[key]
 	if !ok {
 		return false
