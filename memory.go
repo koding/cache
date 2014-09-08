@@ -11,12 +11,16 @@ type MemoryCache struct {
 	// Mutex is used for handling the concurrent
 	// read/write requests for cache
 	sync.Mutex
-	// items holds the cache data
-	items map[string]interface{}
+
+	// cache holds the cache data
+	cache *MemoryCacheNoTS
+
 	// setAts holds the time that related item's set at
 	setAts map[string]time.Time
+
 	// ttl is a duration for a cache key to expire
 	ttl time.Duration
+
 	// gcInterval is a duration for garbage collection
 	gcInterval time.Duration
 }
@@ -33,7 +37,7 @@ func NewMemory() *MemoryCache {
 // ttl is used for expiration of a key from cache
 func NewMemoryWithTTL(ttl time.Duration) *MemoryCache {
 	return &MemoryCache{
-		items:  map[string]interface{}{},
+		cache:  NewMemoryNoTS(),
 		setAts: map[string]time.Time{},
 		ttl:    ttl,
 	}
@@ -44,7 +48,7 @@ func (r *MemoryCache) StartGC(gcInterval time.Duration) {
 	r.gcInterval = gcInterval
 	go func() {
 		for _ = range time.Tick(gcInterval) {
-			for key, _ := range r.items {
+			for key, _ := range r.cache.items {
 				if !r.isValid(key) {
 					r.Delete(key)
 				}
@@ -63,19 +67,22 @@ func (r *MemoryCache) Get(key string) (interface{}, error) {
 		r.delete(key)
 		return nil, ErrNotFound
 	}
-	value, ok := r.items[key]
-	if !ok {
-		return nil, ErrNotFound
+
+	value, err := r.cache.Get(key)
+	if err != nil {
+		return nil, err
 	}
+
 	return value, nil
 }
 
 // Set will persist a value to the cache or
 // override existing one with the new one
-func (r *MemoryCache) Set(key string, resp interface{}) error {
+func (r *MemoryCache) Set(key string, value interface{}) error {
 	r.Lock()
 	defer r.Unlock()
-	r.items[key] = resp
+
+	r.cache.Set(key, value)
 	r.setAts[key] = time.Now()
 	return nil
 }
@@ -84,12 +91,13 @@ func (r *MemoryCache) Set(key string, resp interface{}) error {
 func (r *MemoryCache) Delete(key string) error {
 	r.Lock()
 	defer r.Unlock()
+
 	r.delete(key)
 	return nil
 }
 
 func (r *MemoryCache) delete(key string) {
-	delete(r.items, key)
+	r.cache.Delete(key)
 	delete(r.setAts, key)
 }
 
