@@ -4,10 +4,17 @@ import (
 	"container/list"
 )
 
+// LRUCache Discards the least recently used items first. This algorithm
+// requires keeping track of what was used when.
 type LRUCache struct {
-	list  *list.List
+	// list holds all items in a linked list, for finding the `tail` of the list
+	list *list.List
+
+	// items holds the all cache values
 	items Cache
-	size  int
+
+	// size holds the limit of the LRU cache
+	size int
 }
 
 type kv struct {
@@ -15,6 +22,7 @@ type kv struct {
 	v interface{}
 }
 
+// NewLRUCache creates a new LRU cache struct for further cache operations
 func NewLRUCache(size int) *LRUCache {
 	if size < 1 {
 		panic("invalid cache size")
@@ -22,11 +30,14 @@ func NewLRUCache(size int) *LRUCache {
 
 	return &LRUCache{
 		list:  list.New(),
-		items: NewMemory(),
+		items: NewMemoryNoTS(),
 		size:  size,
 	}
 }
 
+// Get returns the value of a given key if it exists, every get item will be
+// moved to the head of the linked list for keeping track of least recent used
+// item
 func (l *LRUCache) Get(key string) (interface{}, error) {
 	res, err := l.items.Get(key)
 	if err != nil {
@@ -40,7 +51,12 @@ func (l *LRUCache) Get(key string) (interface{}, error) {
 	return elem.Value.(*kv).v, nil
 }
 
+// Set sets or overrides the given key with the given value, every set item will
+// be moved or prepended to the head of the linked list for keeping track of
+// least recent used item. When the cache is full, last item of the linked list
+// will be evicted from the cache
 func (l *LRUCache) Set(key string, val interface{}) error {
+	// try to get item
 	res, err := l.items.Get(key)
 	if err != nil && err != ErrNotFound {
 		return err
@@ -48,10 +64,11 @@ func (l *LRUCache) Set(key string, val interface{}) error {
 
 	var elem *list.Element
 
-	// if elem is not in the cache, set it
+	// if elem is not in the cache, push it to front of the list
 	if err == ErrNotFound {
 		elem = l.list.PushFront(&kv{k: key, v: val})
 	} else {
+		// if elem is in the cache, update the data and move it the front
 		elem = res.(*list.Element)
 
 		// update the  data
@@ -61,12 +78,13 @@ func (l *LRUCache) Set(key string, val interface{}) error {
 		l.list.MoveToFront(elem)
 	}
 
+	// in any case, set the item to the cache
 	err = l.items.Set(key, elem)
 	if err != nil {
 		return err
 	}
 
-	// if the cache is full, evict last LRU entry
+	// if the cache is full, evict last entry
 	if l.list.Len() > l.size {
 		// remove last element from cache
 		return l.removeElem(l.list.Back())
@@ -75,6 +93,8 @@ func (l *LRUCache) Set(key string, val interface{}) error {
 	return nil
 }
 
+// Delete deletes the given key-value pair from cache, this function doesnt
+// return an error if item is not in the cache
 func (l *LRUCache) Delete(key string) error {
 	res, err := l.items.Get(key)
 	if err != nil && err != ErrNotFound {
