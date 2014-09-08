@@ -1,4 +1,3 @@
-// Package cache provides basic caching mechanisms for Go(lang) projects.
 package cache
 
 // MemoryNoTS provides a non-thread safe caching mechanism
