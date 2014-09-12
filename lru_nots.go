@@ -10,8 +10,8 @@ type LRUNoTS struct {
 	// list holds all items in a linked list, for finding the `tail` of the list
 	list *list.List
 
-	// items holds the all cache values
-	items Cache
+	// cache holds the all cache values
+	cache Cache
 
 	// size holds the limit of the LRU cache
 	size int
@@ -34,7 +34,7 @@ func NewLRUNoTS(size int) Cache {
 
 	return &LRUNoTS{
 		list:  list.New(),
-		items: NewMemoryNoTS(),
+		cache: NewMemoryNoTS(),
 		size:  size,
 	}
 }
@@ -43,7 +43,7 @@ func NewLRUNoTS(size int) Cache {
 // moved to the head of the linked list for keeping track of least recent used
 // item
 func (l *LRUNoTS) Get(key string) (interface{}, error) {
-	res, err := l.items.Get(key)
+	res, err := l.cache.Get(key)
 	if err != nil {
 		return nil, err
 	}
@@ -61,7 +61,7 @@ func (l *LRUNoTS) Get(key string) (interface{}, error) {
 // will be evicted from the cache
 func (l *LRUNoTS) Set(key string, val interface{}) error {
 	// try to get item
-	res, err := l.items.Get(key)
+	res, err := l.cache.Get(key)
 	if err != nil && err != ErrNotFound {
 		return err
 	}
@@ -83,7 +83,7 @@ func (l *LRUNoTS) Set(key string, val interface{}) error {
 	}
 
 	// in any case, set the item to the cache
-	err = l.items.Set(key, elem)
+	err = l.cache.Set(key, elem)
 	if err != nil {
 		return err
 	}
@@ -100,7 +100,7 @@ func (l *LRUNoTS) Set(key string, val interface{}) error {
 // Delete deletes the given key-value pair from cache, this function doesnt
 // return an error if item is not in the cache
 func (l *LRUNoTS) Delete(key string) error {
-	res, err := l.items.Get(key)
+	res, err := l.cache.Get(key)
 	if err != nil && err != ErrNotFound {
 		return err
 	}
@@ -118,5 +118,5 @@ func (l *LRUNoTS) Delete(key string) error {
 
 func (l *LRUNoTS) removeElem(e *list.Element) error {
 	l.list.Remove(e)
-	return l.items.Delete(e.Value.(*kv).k)
+	return l.cache.Delete(e.Value.(*kv).k)
 }
