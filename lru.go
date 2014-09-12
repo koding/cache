@@ -13,11 +13,6 @@ type LRU struct {
 	cache Cache
 }
 
-type kv struct {
-	k string
-	v interface{}
-}
-
 // NewLRU creates a new LRU cache struct for further cache operations
 func NewLRU(size int) Cache {
 	return &LRU{

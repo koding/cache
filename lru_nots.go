@@ -17,6 +17,14 @@ type LRUNoTS struct {
 	size int
 }
 
+// kv is an helper struct for keeping track of the key for the list item. Only
+// place where we need the key of a value is while removing the last item from
+// linked list, for other cases, all operations alread have the key
+type kv struct {
+	k string
+	v interface{}
+}
+
 // NewLRUNoTS creates a new LRU cache struct for further cache operations
 func NewLRUNoTS(size int) Cache {
 	if size < 1 {
