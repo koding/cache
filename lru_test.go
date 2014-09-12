@@ -26,3 +26,8 @@ func TestLRUDelete(t *testing.T) {
 	cache := NewLRU(2)
 	testCacheDelete(t, cache)
 }
+
+func TestLRUNilValue(t *testing.T) {
+	cache := NewLRU(2)
+	testCacheNilValue(t, cache)
+}

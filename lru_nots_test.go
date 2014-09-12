@@ -26,3 +26,8 @@ func TestLRUNoTSDelete(t *testing.T) {
 	cache := NewLRUNoTS(2)
 	testCacheDelete(t, cache)
 }
+
+func TestLRUNoTSNilValue(t *testing.T) {
+	cache := NewLRUNoTS(2)
+	testCacheNilValue(t, cache)
+}
