@@ -13,7 +13,7 @@ type LRU struct {
 	cache Cache
 }
 
-// NewLRU creates a new LRU cache struct for further cache operations
+// NewLRU creates a thread-safe LRU cache
 func NewLRU(size int) Cache {
 	return &LRU{
 		cache: NewLRUNoTS(size),

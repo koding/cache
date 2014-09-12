@@ -25,7 +25,8 @@ type kv struct {
 	v interface{}
 }
 
-// NewLRUNoTS creates a new LRU cache struct for further cache operations
+// NewLRUNoTS creates a new LRU cache struct for further cache operations. Size
+// is used for limiting the upper bound of the cache
 func NewLRUNoTS(size int) Cache {
 	if size < 1 {
 		panic("invalid cache size")
