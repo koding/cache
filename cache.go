@@ -10,6 +10,9 @@ type Cache interface {
 	// Set sets a single item to the backend
 	Set(key string, value interface{}) error
 
+	// SetNX sets a single item to the backend, only if it doesn't exist
+	SetNX(key string, value interface{}) (bool, error)
+
 	// Delete deletes single item from backend
 	Delete(key string) error
 }

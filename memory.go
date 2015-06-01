@@ -36,6 +36,14 @@ func (r *Memory) Set(key string, value interface{}) error {
 	return r.cache.Set(key, value)
 }
 
+// SetNX sets a value to the cache only if it does not already exist
+func (r *Memory) SetNX(key string, value interface{}) (bool, error) {
+	r.Lock()
+	defer r.Unlock()
+
+	return r.cache.SetNX(key, value)
+}
+
 // Delete deletes the given key-value pair from cache, this function doesnt
 // return an error if item is not in the cache
 func (r *Memory) Delete(key string) error {
