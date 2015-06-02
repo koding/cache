@@ -102,12 +102,12 @@ func testCacheDelete(t *testing.T, cache Cache) {
 
 	err := cache.Delete("test_key3")
 	if err != nil {
-		t.Fatal("non-exiting item should not give error")
+		t.Fatal("non-existing item should not give error")
 	}
 
 	err = cache.Delete("test_key")
 	if err != nil {
-		t.Fatal("exiting item should not give error")
+		t.Fatal("existing item should not give error")
 	}
 
 	data, err := cache.Get("test_key")

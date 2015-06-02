@@ -54,7 +54,7 @@ func (r *MemoryTTL) StartGC(gcInterval time.Duration) {
 }
 
 // Get returns a value of a given key if it exists
-// and valid for the time being
+// and is valid for the time being
 func (r *MemoryTTL) Get(key string) (interface{}, error) {
 	r.Lock()
 	defer r.Unlock()
@@ -78,9 +78,28 @@ func (r *MemoryTTL) Set(key string, value interface{}) error {
 	r.Lock()
 	defer r.Unlock()
 
+	r.set(key, value)
+	return nil
+}
+
+// SetNX will persist a value to the cache only
+// if it does not already exist
+func (r *MemoryTTL) SetNX(key string, value interface{}) (bool, error) {
+	r.Lock()
+	defer r.Unlock()
+
+	_, err := r.cache.Get(key)
+	if err == nil && r.isValid(key) {
+		return false, nil
+	}
+
+	r.set(key, value)
+	return true, nil
+}
+
+func (r *MemoryTTL) set(key string, value interface{}) {
 	r.cache.Set(key, value)
 	r.setAts[key] = time.Now()
-	return nil
 }
 
 // Delete deletes a given key if exists
