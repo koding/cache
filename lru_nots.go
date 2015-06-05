@@ -99,35 +99,12 @@ func (l *LRUNoTS) Set(key string, val interface{}) error {
 
 // SetNX sets a value to the cache only if it does not already exist
 func (l *LRUNoTS) SetNX(key string, val interface{}) (bool, error) {
-	// try to get item
-	_, err := l.cache.Get(key)
-	if err != nil && err != ErrNotFound {
-		return false, err
-	}
-
-	var elem *list.Element
-
-	// if elem is not in the cache, push it to front of the list
+	_, err := l.Get(key)
 	if err == ErrNotFound {
-		elem = l.list.PushFront(&kv{k: key, v: val})
-	} else {
-		// if elem is already in the cache, do nothing
-		return false, nil
+		return true, l.Set(key, val)
 	}
 
-	// if elem is not in the cache, set the item to the cache
-	err = l.cache.Set(key, elem)
-	if err != nil {
-		return false, err
-	}
-
-	// if the cache is full, evict last entry
-	if l.list.Len() > l.size {
-		// remove last element from cache
-		return true, l.removeElem(l.list.Back())
-	}
-
-	return true, nil
+	return false, err
 }
 
 // Delete deletes the given key-value pair from cache, this function doesnt
