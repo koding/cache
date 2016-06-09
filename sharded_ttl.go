@@ -13,7 +13,7 @@ type ShardedTTL struct {
 	sync.Mutex
 
 	// cache holds the cache data
-	cache *ShardedNoTS
+	cache ShardedCache
 
 	// setAts holds the time that related item's set at, indexed by tenantId
 	setAts map[string]map[string]time.Time
@@ -25,17 +25,25 @@ type ShardedTTL struct {
 	gcInterval time.Duration
 }
 
-// NewShardedWithTTL creates an in-memory sharded cache system
+// NewShardedCacheWithTTL creates a sharded cache system with TTL based on specified Cache constructor
 // Which everytime will return the true values about a cache hit
 // and never will leak memory
 // ttl is used for expiration of a key from cache
-func NewShardedWithTTL(ttl time.Duration) *ShardedTTL {
+func NewShardedCacheWithTTL(ttl time.Duration, f func() Cache) *ShardedTTL {
 	return &ShardedTTL{
-		cache:  NewShardedNoTS(NewMemNoTSCache),
+		cache:  NewShardedNoTS(f),
 		setAts: map[string]map[string]time.Time{},
 		ttl:    ttl,
 	}
 }
+
+// NewShardedWithTTL creates an in-memory sharded cache system
+// ttl is used for expiration of a key from cache
+func NewShardedWithTTL(ttl time.Duration) *ShardedTTL {
+	return NewShardedCacheWithTTL(ttl, NewMemNoTSCache)
+}
+
+
 
 // StartGC starts the garbage collection process in a go routine
 func (r *ShardedTTL) StartGC(gcInterval time.Duration) {
