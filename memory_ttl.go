@@ -48,13 +48,18 @@ func (r *MemoryTTL) StartGC(gcInterval time.Duration) {
 		return
 	}
 
-	r.gcTicker = time.NewTicker(gcInterval)
-	r.done = make(chan struct{})
+	ticker := time.NewTicker(gcInterval)
+	done := make(chan struct{})
+
+	r.Lock()
+	r.gcTicker = ticker
+	r.done = done
+	r.Unlock()
 
 	go func() {
 		for {
 			select {
-			case <-r.gcTicker.C:
+			case <-ticker.C:
 				now := time.Now()
 
 				r.Lock()
@@ -64,7 +69,7 @@ func (r *MemoryTTL) StartGC(gcInterval time.Duration) {
 					}
 				}
 				r.Unlock()
-			case <-r.done:
+			case <-done:
 				return
 			}
 		}
@@ -74,10 +79,12 @@ func (r *MemoryTTL) StartGC(gcInterval time.Duration) {
 // StopGC stops sweeping goroutine.
 func (r *MemoryTTL) StopGC() {
 	if r.gcTicker != nil {
+		r.Lock()
 		r.gcTicker.Stop()
 		r.gcTicker = nil
 		close(r.done)
 		r.done = nil
+		r.Unlock()
 	}
 }
 
