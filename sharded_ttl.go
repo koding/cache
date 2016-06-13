@@ -50,13 +50,15 @@ func (r *ShardedTTL) StartGC(gcInterval time.Duration) {
 	r.gcInterval = gcInterval
 	go func() {
 		for _ = range time.Tick(gcInterval) {
+			r.Lock()
 			for tenantId := range r.setAts {
 				for key := range r.setAts[tenantId] {
 					if !r.isValid(tenantId, key) {
-						r.Delete(tenantId, key)
+						r.delete(tenantId, key)
 					}
 				}
 			}
+			r.Unlock()
 		}
 	}()
 }
@@ -111,7 +113,7 @@ func (r *ShardedTTL) delete(tenantId, key string) {
 	}
 	r.cache.Delete(tenantId, key)
 	delete(r.setAts[tenantId], key)
-        if len(r.setAts[tenantId]) == 0 {
+	if len(r.setAts[tenantId]) == 0 {
 		delete(r.setAts, tenantId)
 	}
 }

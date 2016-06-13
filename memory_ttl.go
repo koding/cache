@@ -12,7 +12,7 @@ var zeroTTL = time.Duration(0)
 type MemoryTTL struct {
 	// Mutex is used for handling the concurrent
 	// read/write requests for cache
-	sync.Mutex
+	sync.RWMutex
 
 	// cache holds the cache data
 	cache *MemoryNoTS
@@ -23,8 +23,11 @@ type MemoryTTL struct {
 	// ttl is a duration for a cache key to expire
 	ttl time.Duration
 
-	// gcInterval is a duration for garbage collection
-	gcInterval time.Duration
+	// gcTicker controls gc intervals
+	gcTicker *time.Ticker
+
+	// done controls sweeping goroutine lifetime
+	done chan struct{}
 }
 
 // NewMemoryWithTTL creates an inmemory cache system
@@ -41,23 +44,55 @@ func NewMemoryWithTTL(ttl time.Duration) *MemoryTTL {
 
 // StartGC starts the garbage collection process in a go routine
 func (r *MemoryTTL) StartGC(gcInterval time.Duration) {
-	r.gcInterval = gcInterval
+	if gcInterval <= 0 {
+		return
+	}
+
+	ticker := time.NewTicker(gcInterval)
+	done := make(chan struct{})
+
+	r.Lock()
+	r.gcTicker = ticker
+	r.done = done
+	r.Unlock()
+
 	go func() {
-		for _ = range time.Tick(gcInterval) {
-			for key := range r.cache.items {
-				if !r.isValid(key) {
-					r.Delete(key)
+		for {
+			select {
+			case <-ticker.C:
+				now := time.Now()
+
+				r.Lock()
+				for key := range r.cache.items {
+					if !r.isValidTime(key, now) {
+						r.delete(key)
+					}
 				}
+				r.Unlock()
+			case <-done:
+				return
 			}
 		}
 	}()
 }
 
+// StopGC stops sweeping goroutine.
+func (r *MemoryTTL) StopGC() {
+	if r.gcTicker != nil {
+		r.Lock()
+		r.gcTicker.Stop()
+		r.gcTicker = nil
+		close(r.done)
+		r.done = nil
+		r.Unlock()
+	}
+}
+
 // Get returns a value of a given key if it exists
 // and valid for the time being
 func (r *MemoryTTL) Get(key string) (interface{}, error) {
-	r.Lock()
-	defer r.Unlock()
+	r.RLock()
+	defer r.RUnlock()
 
 	if !r.isValid(key) {
 		r.delete(key)
@@ -98,6 +133,10 @@ func (r *MemoryTTL) delete(key string) {
 }
 
 func (r *MemoryTTL) isValid(key string) bool {
+	return r.isValidTime(key, time.Now())
+}
+
+func (r *MemoryTTL) isValidTime(key string, t time.Time) bool {
 	setAt, ok := r.setAts[key]
 	if !ok {
 		return false
@@ -107,5 +146,5 @@ func (r *MemoryTTL) isValid(key string) bool {
 		return true
 	}
 
-	return setAt.Add(r.ttl).After(time.Now())
+	return setAt.Add(r.ttl).After(t)
 }
