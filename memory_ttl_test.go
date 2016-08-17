@@ -29,6 +29,32 @@ func TestMemoryCacheTTL(t *testing.T) {
 	}
 }
 
+func TestMemoryCacheTTLGetExpired(t *testing.T) {
+	// Needs go test -race to catch problems
+	cache := NewMemoryWithTTL(1 * time.Millisecond)
+	cache.Set("test_key", "test_data")
+	sig := make(chan struct{})
+	go func() {
+		for {
+			_, _ = cache.Get("test_key")
+			select {
+			case _, ok := <-sig:
+				if !ok {
+					break
+				}
+			default:
+			}
+		}
+
+	}()
+	time.Sleep(20 * time.Millisecond)
+	_, err := cache.Get("test_key")
+	if err == nil {
+		t.Fatal("data found")
+	}
+	close(sig)
+}
+
 func TestMemoryCacheTTLNilValue(t *testing.T) {
 	cache := NewMemoryWithTTL(100 * time.Millisecond)
 	cache.StartGC(time.Millisecond * 10)
