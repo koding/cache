@@ -1,9 +1,6 @@
 package cache
 
-import (
-	"container/list"
-	"fmt"
-)
+import "container/list"
 
 type LFUNoTS struct {
 	// list holds all items in a linked list
@@ -46,7 +43,16 @@ func NewLFUNoTS(size int) Cache {
 
 // set a new key-value pair
 func (l *LFUNoTS) Get(key string) (interface{}, error) {
-	return nil, nil
+	res, err := l.cache.Get(key)
+	if err != nil {
+		return nil, err
+	}
+
+	ci := res.(*cacheItem)
+
+	// increase usage of cache item
+	l.incr(ci)
+	return ci.v, nil
 }
 
 // set a new key-value pair
@@ -56,27 +62,29 @@ func (l *LFUNoTS) Set(key string, value interface{}) error {
 
 func (l *LFUNoTS) set(key string, value interface{}) error {
 	res, err := l.cache.Get(key)
-	fmt.Println("ERR1")
 	if err != nil && err != ErrNotFound {
 		return err
 	}
-	fmt.Println("ERR2")
+
 	if err == ErrNotFound {
 		//create new cache item
-		fmt.Println("ERR3")
 		ci := newCacheItem(key, value)
-		l.cache.Set(key, value)
-		fmt.Println("BURASI1")
-		l.incr(ci)
-		fmt.Println("ERR4")
-		if l.currentSize > l.size {
+
+		// if cache size si reached to max size
+		// then first remove lfu item from the list
+		if l.currentSize >= l.size {
 			// then evict some data from head of linked list.
 			l.evict(l.frequencyList.Front())
 		}
 
+		l.cache.Set(key, ci)
+		l.incr(ci)
+
 	} else {
 		//update existing one
-		l.cache.Set(key, value)
+		val := res.(*cacheItem)
+		val.v = value
+		l.cache.Set(key, val)
 		l.incr(res.(*cacheItem))
 	}
 
@@ -97,24 +105,20 @@ func (l *LFUNoTS) incr(ci *cacheItem) {
 	var nextPosition *list.Element
 	// update existing one
 	if ci.freqElement != nil {
-		fmt.Println("INC1")
 		nextValue = ci.freqElement.Value.(*entry).freqCount + 1
 		// replace the position of frequency element
 		nextPosition = ci.freqElement.Next()
 	} else {
-		fmt.Println("INC2")
 		// create new frequency element for cache item
 		// ci.freqElement is nil so next value of freq will be 1
 		nextValue = 1
 		// we created new element and its position will be head of linked list
 		nextPosition = l.frequencyList.Front()
 		l.currentSize++
-		fmt.Println("INC2")
 	}
 
 	// we need to check position first, otherwise it will panic if we try to fetch value of entry
 	if nextPosition == nil || nextPosition.Value.(*entry).freqCount != nextValue {
-		fmt.Println("INC3")
 		// create new entry node for linked list
 		entry := newEntry(nextValue)
 		if ci.freqElement == nil {
@@ -129,10 +133,6 @@ func (l *LFUNoTS) incr(ci *cacheItem) {
 	if ci.freqElement.Prev() != nil {
 		l.remove(ci, ci.freqElement.Prev())
 	}
-	fmt.Println("LIST IS:", l)
-	fmt.Println("FREQUENCY LIST IS:", l.frequencyList)
-	fmt.Println("FREQUENCY LIST length IS:", l.frequencyList.Len())
-	fmt.Println("CURRENT SIZE IS:", l.currentSize)
 }
 
 func (l *LFUNoTS) remove(ci *cacheItem, position *list.Element) {
@@ -159,7 +159,21 @@ func newCacheItem(key string, value interface{}) *cacheItem {
 }
 
 func (l *LFUNoTS) Delete(key string) error {
-	return nil
+	res, err := l.cache.Get(key)
+	if err != nil && err != ErrNotFound {
+		return err
+	}
+
+	// we dont need to delete if already doesn't exist
+	if err == ErrNotFound {
+		return nil
+	}
+
+	ci := res.(*cacheItem)
+
+	l.remove(ci, ci.freqElement)
+	l.currentSize--
+	return l.cache.Delete(key)
 }
 
 // evict deletes the element from list
