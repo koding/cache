@@ -41,7 +41,8 @@ func NewLFUNoTS(size int) Cache {
 	}
 }
 
-// set a new key-value pair
+// Get gets value of cache item
+// then increments the usage of the item
 func (l *LFUNoTS) Get(key string) (interface{}, error) {
 	res, err := l.cache.Get(key)
 	if err != nil {
@@ -55,11 +56,38 @@ func (l *LFUNoTS) Get(key string) (interface{}, error) {
 	return ci.v, nil
 }
 
-// set a new key-value pair
+// Set sets a new key-value pair
+// Set increments the key usage count too
+// eg:
+// cache.Set("test_key","2")
+// cache.Set("test_key","1")
+// if you try to set a value into same key
+// its usage count will be increased
+// and usage count of "test_key" will be 2 in this example
 func (l *LFUNoTS) Set(key string, value interface{}) error {
 	return l.set(key, value)
 }
 
+// Delete deletes the key and its dependencies
+func (l *LFUNoTS) Delete(key string) error {
+	res, err := l.cache.Get(key)
+	if err != nil && err != ErrNotFound {
+		return err
+	}
+
+	// we dont need to delete if already doesn't exist
+	if err == ErrNotFound {
+		return nil
+	}
+
+	ci := res.(*cacheItem)
+
+	l.remove(ci, ci.freqElement)
+	l.currentSize--
+	return l.cache.Delete(key)
+}
+
+// set sets a new key-value pair
 func (l *LFUNoTS) set(key string, value interface{}) error {
 	res, err := l.cache.Get(key)
 	if err != nil && err != ErrNotFound {
@@ -91,6 +119,7 @@ func (l *LFUNoTS) set(key string, value interface{}) error {
 	return nil
 }
 
+// entry holds the frequency node informations
 type entry struct {
 	// freqCount holds the frequency number
 	freqCount int
@@ -100,6 +129,9 @@ type entry struct {
 }
 
 // incr increments the usage of cache items
+// incrementing will be used in 'Get' & 'Set' functions
+// whenever these functions are used, usage count of any key
+// will be increased
 func (l *LFUNoTS) incr(ci *cacheItem) {
 	var nextValue int
 	var nextPosition *list.Element
@@ -135,6 +167,9 @@ func (l *LFUNoTS) incr(ci *cacheItem) {
 	}
 }
 
+// remove removes the cache item from the cache list
+// after deleting key from the list, if its linked list has no any item no longer
+// then that linked list elemnet will be removed from the list too
 func (l *LFUNoTS) remove(ci *cacheItem, position *list.Element) {
 	entry := position.Value.(*entry).listEntry
 	delete(entry, ci)
@@ -143,6 +178,7 @@ func (l *LFUNoTS) remove(ci *cacheItem, position *list.Element) {
 	}
 }
 
+// newEntry creates a new entry with frequency count
 func newEntry(freqCount int) *entry {
 	return &entry{
 		freqCount: freqCount,
@@ -150,6 +186,7 @@ func newEntry(freqCount int) *entry {
 	}
 }
 
+// newCacheItem creates a new cache item with key and value
 func newCacheItem(key string, value interface{}) *cacheItem {
 	return &cacheItem{
 		k: key,
@@ -158,30 +195,14 @@ func newCacheItem(key string, value interface{}) *cacheItem {
 
 }
 
-func (l *LFUNoTS) Delete(key string) error {
-	res, err := l.cache.Get(key)
-	if err != nil && err != ErrNotFound {
-		return err
-	}
-
-	// we dont need to delete if already doesn't exist
-	if err == ErrNotFound {
-		return nil
-	}
-
-	ci := res.(*cacheItem)
-
-	l.remove(ci, ci.freqElement)
-	l.currentSize--
-	return l.cache.Delete(key)
-}
-
-// evict deletes the element from list
+// evict deletes the element from list with given linked list element
 func (l *LFUNoTS) evict(e *list.Element) error {
+	// ne need to return err if list element is already nil
 	if e == nil {
 		return nil
 	}
 
+	// remove the first item of the linked list
 	for entry, _ := range e.Value.(*entry).listEntry {
 		l.cache.Delete(entry.k)
 		l.remove(entry, e)
