@@ -21,7 +21,12 @@ func TestLFUEviction(t *testing.T) {
 	cache := NewLFU(2)
 	testCacheGetSet(t, cache)
 
-	err := cache.Set("test_key3", "test_data3")
+	_, err := cache.Get("test_key2")
+	if err != nil {
+		t.Fatal("test_key2 should be in the cache")
+	}
+	// get-> test_key should not be in cache after insert test_key3
+	err = cache.Set("test_key3", "test_data3")
 	if err != nil {
 		t.Fatal("should not give err while setting item")
 	}
