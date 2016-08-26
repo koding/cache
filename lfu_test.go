@@ -56,6 +56,12 @@ func BenchmarkLFUGet1000(b *testing.B) {
 		testGetNTimes(cache, 1000)
 	}
 }
+func BenchmarkLFUDelete1000(b *testing.B) {
+	cache := NewLFU(5)
+	for n := 0; n < b.N; n++ {
+		testDeleteNTimes(cache, 1000)
+	}
+}
 func BenchmarkLFUSetDelete1000(b *testing.B) {
 	cache := NewLFU(5)
 	for n := 0; n < b.N; n++ {
@@ -69,6 +75,7 @@ func BenchmarkLFUSetGet1000(b *testing.B) {
 	}
 }
 
+// Below functions are helper for lfu benchmarks
 func testSetNTimes(cache Cache, n int) {
 	for i := 0; i < n; i++ {
 		cache.Set("keyBench", i)
@@ -87,6 +94,14 @@ func testGetNTimes(cache Cache, n int) {
 
 	for i := 0; i < n-1; i++ {
 		cache.Get("keyBench")
+	}
+}
+
+// testDeleteNTimes outputs ErrNotFound error each time
+// we ignore that error in this benchmark test
+func testDeleteNTimes(cache Cache, n int) {
+	for i := 0; i < n; i++ {
+		cache.Delete("keyBench")
 	}
 }
 
