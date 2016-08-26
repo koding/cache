@@ -40,6 +40,10 @@ func TestLFUEviction(t *testing.T) {
 	}
 }
 
+//
+// BENCHMARK OPERATIONS
+//
+
 func BenchmarkLFUSet1000(b *testing.B) {
 	cache := NewLFU(5)
 	for n := 0; n < b.N; n++ {
@@ -50,6 +54,18 @@ func BenchmarkLFUGet1000(b *testing.B) {
 	cache := NewLFU(5)
 	for n := 0; n < b.N; n++ {
 		testGetNTimes(cache, 1000)
+	}
+}
+func BenchmarkLFUSetDelete1000(b *testing.B) {
+	cache := NewLFU(5)
+	for n := 0; n < b.N; n++ {
+		testSetDeleteNTimes(cache, 1000)
+	}
+}
+func BenchmarkLFUSetGet1000(b *testing.B) {
+	cache := NewLFU(5)
+	for n := 0; n < b.N; n++ {
+		testSetGetNTimes(cache, 1000)
 	}
 }
 
@@ -70,6 +86,19 @@ func testGetNTimes(cache Cache, n int) {
 	}
 
 	for i := 0; i < n-1; i++ {
+		cache.Get("keyBench")
+	}
+}
+
+func testSetDeleteNTimes(cache Cache, n int) {
+	for i := 0; i < n; i++ {
+		cache.Set("keyBench", i)
+		cache.Delete("keyBench")
+	}
+}
+func testSetGetNTimes(cache Cache, n int) {
+	for i := 0; i < n; i++ {
+		cache.Set("keyBench", i)
 		cache.Get("keyBench")
 	}
 }
