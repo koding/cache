@@ -132,7 +132,7 @@ type entry struct {
 	freqCount int
 
 	// itemCount holds the items how many exist in list
-	listEntry map[*cacheItem]byte
+	listEntry map[*cacheItem]struct{}
 }
 
 // incr increments the usage of cache items
@@ -166,7 +166,7 @@ func (l *LFUNoTS) incr(ci *cacheItem) {
 			nextPosition = l.frequencyList.InsertAfter(entry, ci.freqElement)
 		}
 	}
-	nextPosition.Value.(*entry).listEntry[ci] = 1
+	nextPosition.Value.(*entry).listEntry[ci] = struct{}{}
 	ci.freqElement = nextPosition
 
 	// we have moved the cache item to the next position,
@@ -192,7 +192,7 @@ func (l *LFUNoTS) remove(ci *cacheItem, position *list.Element) {
 func newEntry(freqCount int) *entry {
 	return &entry{
 		freqCount: freqCount,
-		listEntry: make(map[*cacheItem]byte),
+		listEntry: make(map[*cacheItem]struct{}),
 	}
 }
 
