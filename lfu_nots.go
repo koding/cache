@@ -12,6 +12,8 @@ type LFUNoTS struct {
 	// size holds the limit of the LFU cache
 	size int
 
+	// currentSize holds the current item size in the list
+	// after each adding of item, currentSize will be increased
 	currentSize int
 }
 
@@ -23,6 +25,10 @@ type cacheItem struct {
 	v interface{}
 
 	// holds the frequency elements
+	// it holds the element's usage as count
+	// if cacheItems is used 4 times (with set or get operations)
+	// the freqElement's frequency counter will be 4
+	// it holds entry struct inside Value of list.Element
 	freqElement *list.Element
 }
 
@@ -58,6 +64,7 @@ func (l *LFUNoTS) Get(key string) (interface{}, error) {
 
 // Set sets a new key-value pair
 // Set increments the key usage count too
+//
 // eg:
 // cache.Set("test_key","2")
 // cache.Set("test_key","1")
@@ -162,6 +169,9 @@ func (l *LFUNoTS) incr(ci *cacheItem) {
 	nextPosition.Value.(*entry).listEntry[ci] = 1
 	ci.freqElement = nextPosition
 
+	// we have moved the cache item to the next position,
+	// then we need to  remove old position of the cacheItem from the list
+	// then we deleted previous position of cacheItem
 	if ci.freqElement.Prev() != nil {
 		l.remove(ci, ci.freqElement.Prev())
 	}
