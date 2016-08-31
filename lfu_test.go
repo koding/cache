@@ -1,9 +1,6 @@
 package cache
 
-import (
-	"fmt"
-	"testing"
-)
+import "testing"
 
 func TestLFUNGetSet(t *testing.T) {
 	cache := NewLFU(2)
@@ -47,73 +44,34 @@ func TestLFUEviction(t *testing.T) {
 func BenchmarkLFUSet1000(b *testing.B) {
 	cache := NewLFU(5)
 	for n := 0; n < b.N; n++ {
-		testSetNTimes(cache, 1000)
+		cache.Set("keyBench", "test_data")
 	}
 }
 func BenchmarkLFUGet1000(b *testing.B) {
 	cache := NewLFU(5)
+	cache.Set("keyBench", "test")
 	for n := 0; n < b.N; n++ {
-		testGetNTimes(cache, 1000)
+		cache.Get("keyBench")
 	}
 }
 func BenchmarkLFUDelete1000(b *testing.B) {
 	cache := NewLFU(5)
+	cache.Set("keyBench", "test")
 	for n := 0; n < b.N; n++ {
-		testDeleteNTimes(cache, 1000)
+		cache.Delete("keyBench")
 	}
 }
 func BenchmarkLFUSetDelete1000(b *testing.B) {
 	cache := NewLFU(5)
 	for n := 0; n < b.N; n++ {
-		testSetDeleteNTimes(cache, 1000)
+		cache.Set("keyBench", "test_data")
+		cache.Delete("keyBench")
 	}
 }
 func BenchmarkLFUSetGet1000(b *testing.B) {
 	cache := NewLFU(5)
 	for n := 0; n < b.N; n++ {
-		testSetGetNTimes(cache, 1000)
-	}
-}
-
-// Below functions are helper for lfu benchmarks
-func testSetNTimes(cache Cache, n int) {
-	for i := 0; i < n; i++ {
-		cache.Set("keyBench", i)
-	}
-}
-
-func testGetNTimes(cache Cache, n int) {
-	_, err := cache.Get("keyBench")
-	if err != nil && err != ErrNotFound {
-		fmt.Println("Occurred error while getting from cache")
-		return
-	}
-	if err == ErrNotFound {
-		cache.Set("keyBench", "test")
-	}
-
-	for i := 0; i < n-1; i++ {
-		cache.Get("keyBench")
-	}
-}
-
-// testDeleteNTimes outputs ErrNotFound error each time
-// we ignore that error in this benchmark test
-func testDeleteNTimes(cache Cache, n int) {
-	for i := 0; i < n; i++ {
-		cache.Delete("keyBench")
-	}
-}
-
-func testSetDeleteNTimes(cache Cache, n int) {
-	for i := 0; i < n; i++ {
-		cache.Set("keyBench", i)
-		cache.Delete("keyBench")
-	}
-}
-func testSetGetNTimes(cache Cache, n int) {
-	for i := 0; i < n; i++ {
-		cache.Set("keyBench", i)
+		cache.Set("keyBench", "set_data")
 		cache.Get("keyBench")
 	}
 }
