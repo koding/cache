@@ -166,6 +166,7 @@ func (l *LFUNoTS) incr(ci *cacheItem) {
 			nextPosition = l.frequencyList.InsertAfter(entry, ci.freqElement)
 		}
 	}
+
 	nextPosition.Value.(*entry).listEntry[ci] = struct{}{}
 	ci.freqElement = nextPosition
 
@@ -188,23 +189,6 @@ func (l *LFUNoTS) remove(ci *cacheItem, position *list.Element) {
 	}
 }
 
-// newEntry creates a new entry with frequency count
-func newEntry(freqCount int) *entry {
-	return &entry{
-		freqCount: freqCount,
-		listEntry: make(map[*cacheItem]struct{}),
-	}
-}
-
-// newCacheItem creates a new cache item with key and value
-func newCacheItem(key string, value interface{}) *cacheItem {
-	return &cacheItem{
-		k: key,
-		v: value,
-	}
-
-}
-
 // evict deletes the element from list with given linked list element
 func (l *LFUNoTS) evict(e *list.Element) error {
 	// ne need to return err if list element is already nil
@@ -221,4 +205,21 @@ func (l *LFUNoTS) evict(e *list.Element) error {
 	}
 
 	return nil
+}
+
+// newEntry creates a new entry with frequency count
+func newEntry(freqCount int) *entry {
+	return &entry{
+		freqCount: freqCount,
+		listEntry: make(map[*cacheItem]struct{}),
+	}
+}
+
+// newCacheItem creates a new cache item with key and value
+func newCacheItem(key string, value interface{}) *cacheItem {
+	return &cacheItem{
+		k: key,
+		v: value,
+	}
+
 }
