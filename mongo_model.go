@@ -15,6 +15,10 @@ type KeyValue struct {
 	ExpireAt  time.Time     `bson:"expireAt" json:"expireAt"`
 }
 
+var (
+	defaultExpireDuration = time.Second * 60
+)
+
 // KeyValueColl default collection name for mongoDB
 const KeyValueColl = "jKeyValue"
 
@@ -121,10 +125,6 @@ func (m *MongoCache) refresh() {
 
 func (m *MongoCache) copy() *mgo.Session {
 	return m.mongeSession.Copy()
-}
-
-func (m *MongoCache) clone() *mgo.Session {
-	return m.mongeSession.Clone()
 }
 
 func (m *MongoCache) run(collection string, s func(*mgo.Collection) error) error {
