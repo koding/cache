@@ -83,7 +83,7 @@ func (m *MongoCache) set(key string, value interface{}) error {
 		Key:       key,
 		Value:     value,
 		CreatedAt: time.Now().UTC(),
-		ExpireAt:  time.Now().UTC().Add(m.ttl),
+		ExpireAt:  time.Now().UTC().Add(m.TTL),
 	}
 
 	return m.CreateKeyValueWithExpiration(kv)
