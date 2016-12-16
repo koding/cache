@@ -7,11 +7,10 @@ import (
 	mgo "gopkg.in/mgo.v2"
 )
 
-// MongoCache ...
+// MongoCache holds the cache values that will be stored in mongoDB
 type MongoCache struct {
 	mongeSession *mgo.Session
 	// cache holds the cache data
-	// cache *KeyValue
 
 	CollectionName string
 	// ttl is a duration for a cache key to expire
@@ -89,6 +88,7 @@ func (m *MongoCache) set(key string, value interface{}) error {
 	return m.CreateKeyValueWithExpiration(kv)
 }
 
+// StartGCol starts the garbage collector with given time interval
 func (m *MongoCache) StartGCol(gcInterval time.Duration) {
 	if gcInterval <= 0 {
 		return
@@ -114,4 +114,16 @@ func (m *MongoCache) StartGCol(gcInterval time.Duration) {
 			}
 		}
 	}()
+}
+
+// StopGC stops sweeping goroutine.
+func (r *MemoryTTL) StopGCol() {
+	if r.gcTicker != nil {
+		r.Lock()
+		r.gcTicker.Stop()
+		r.gcTicker = nil
+		close(r.done)
+		r.done = nil
+		r.Unlock()
+	}
 }
