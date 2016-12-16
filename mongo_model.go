@@ -1,9 +1,9 @@
 package cache
 
 import (
-	"koding/db/models"
 	"time"
 
+	mgo "gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 )
 
@@ -20,7 +20,7 @@ const KeyValueColl = "jKeyValue"
 
 // CreateKeyValue c
 func (m *MongoCache) CreateKeyValue(k *KeyValue) error {
-	return m.CreateKeyValue(k)
+	return m.createKeyValue(k)
 }
 
 // CreateKeyValueWithExpiration creates the key-value pair with default time constants
@@ -46,7 +46,7 @@ func (m *MongoCache) GetKeyWithExpireCheck(k string) (*KeyValue, error) {
 
 // GetKey fetches the key with its key
 func (m *MongoCache) GetKey(key string) (*KeyValue, error) {
-	keyValue := new(models.KeyValue)
+	keyValue := new(KeyValue)
 
 	query := func(c *mgo.Collection) error {
 		return c.Find(bson.M{"key": key}).One(&keyValue)
