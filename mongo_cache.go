@@ -1,6 +1,10 @@
 package cache
 
-import "time"
+import (
+	"time"
+
+	mgo "gopkg.in/mgo.v2"
+)
 
 // MongoCache...
 type MongoCache struct {
