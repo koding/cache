@@ -128,7 +128,7 @@ func (m *MongoCache) copy() *mgo.Session {
 }
 
 func (m *MongoCache) run(collection string, s func(*mgo.Collection) error) error {
-	session := m.Copy()
+	session := m.copy()
 	defer session.Close()
 	c := session.DB("").C(collection)
 	return s(c)
