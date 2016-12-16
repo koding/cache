@@ -1,27 +1,65 @@
 package cache
 
 import (
+	"sync"
 	"time"
 
 	mgo "gopkg.in/mgo.v2"
 )
 
-// MongoCache...
+// MongoCache ...
 type MongoCache struct {
 	mongeSession *mgo.Session
 	// cache holds the cache data
-	cache *KeyValue
+	// cache *KeyValue
 
+	CollectionName string
 	// ttl is a duration for a cache key to expire
-	ttl time.Duration
+	TTL time.Duration
+
+	GCInterval time.Duration
+
+	// StartGC starts the garbage collector and deletes the
+	// expired keys from mongo with given time interval
+	StartGC bool
+
+	// gcTicker controls gc intervals
+	gcTicker *time.Ticker
+
+	// done controls sweeping goroutine lifetime
+	done chan struct{}
+
+	// Mutex is used for handling the concurrent
+	// read/write requests for cache
+	sync.RWMutex
 }
 
-func NewMongoCacheWithTTL(session *mgo.Session, ttl time.Duration) *MongoCache {
-	return &MongoCache{
-		mongeSession: session,
-		cache:        &KeyValue{},
-		ttl:          ttl,
+// NewMongoCacheWithTTL creates a caching layer backed by mongo. TTL's are
+// maanged either by a background cleaner or document is removed on the Get
+// operation. Mongo TTL indexes are not utilized since there can be multiple
+// systems using the same collection with different TTL values.
+//
+// The responsibility of stopping the GC process belongs to the user.
+//
+// Session is not closed while stopping the GC.
+func NewMongoCacheWithTTL(session *mgo.Session, configs ...func(*MongoCache)) Cache {
+	mc := &MongoCache{
+		mongeSession:   session,
+		TTL:            defaultExpireDuration,
+		CollectionName: keyValueColl,
+		GCInterval:     time.Minute,
+		StartGC:        false,
 	}
+
+	for _, configFunc := range configs {
+		configFunc(mc)
+	}
+
+	if mc.StartGC {
+		mc.StartGCol(mc.GCInterval)
+	}
+
+	return mc
 }
 
 // Get returns a value of a given key if it exists
@@ -49,4 +87,33 @@ func (m *MongoCache) set(key string, value interface{}) error {
 	}
 
 	return m.CreateKeyValueWithExpiration(kv)
+}
+
+func (m *MongoCache) StartGCol(gcInterval time.Duration) {
+	if gcInterval <= 0 {
+		return
+	}
+
+	ticker := time.NewTicker(gcInterval)
+	done := make(chan struct{})
+
+	m.Lock()
+	m.gcTicker = ticker
+	m.done = done
+	m.Unlock()
+
+	go func() {
+		for {
+			select {
+			case <-ticker.C:
+				now := time.Now()
+
+				m.Lock()
+				m.DeleteExpiredKeys()
+				m.Unlock()
+			case <-done:
+				return
+			}
+		}
+	}()
 }
