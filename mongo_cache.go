@@ -106,8 +106,6 @@ func (m *MongoCache) StartGCol(gcInterval time.Duration) {
 		for {
 			select {
 			case <-ticker.C:
-				now := time.Now()
-
 				m.Lock()
 				m.DeleteExpiredKeys()
 				m.Unlock()
