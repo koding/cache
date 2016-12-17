@@ -20,7 +20,7 @@ var (
 )
 
 // keyValueColl default collection name for mongoDB
-const keyValueColl = "jKeyValue"
+const defaultKeyValueColl = "jKeyValue"
 
 // CreateKeyValue c
 func (m *MongoCache) CreateKeyValue(k *KeyValue) error {
@@ -56,7 +56,7 @@ func (m *MongoCache) GetKey(key string) (*KeyValue, error) {
 		return c.Find(bson.M{"key": key}).One(&keyValue)
 	}
 
-	err := m.run(keyValueColl, query)
+	err := m.run(m.CollectionName, query)
 	if err != nil {
 		return nil, err
 	}
@@ -70,7 +70,7 @@ func (m *MongoCache) UpdateKey(selector, update bson.M) error {
 		return c.Update(selector, bson.M{"$set": update})
 	}
 
-	return m.run(keyValueColl, query)
+	return m.run(m.CollectionName, query)
 }
 
 // DeleteKey removes the key-value from mongoDB
@@ -82,7 +82,7 @@ func (m *MongoCache) DeleteKey(key string) error {
 		return err
 	}
 
-	return m.run(keyValueColl, query)
+	return m.run(m.CollectionName, query)
 }
 
 func (m *MongoCache) DeleteExpiredKeys() error {
@@ -95,13 +95,13 @@ func (m *MongoCache) DeleteExpiredKeys() error {
 		return err
 	}
 
-	return m.run(keyValueColl, query)
+	return m.run(m.CollectionName, query)
 }
 
 func (m *MongoCache) createKeyValue(k *KeyValue) error {
 	k.CreatedAt = time.Now().UTC()
 	query := insertQuery(k)
-	return m.run(keyValueColl, query)
+	return m.run(m.CollectionName, query)
 }
 
 func setDefaultDataTimes(k *KeyValue) *KeyValue {

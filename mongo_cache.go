@@ -34,18 +34,32 @@ type MongoCache struct {
 }
 
 // NewMongoCacheWithTTL creates a caching layer backed by mongo. TTL's are
-// maanged either by a background cleaner or document is removed on the Get
+// managed either by a background cleaner or document is removed on the Get
 // operation. Mongo TTL indexes are not utilized since there can be multiple
 // systems using the same collection with different TTL values.
 //
 // The responsibility of stopping the GC process belongs to the user.
 //
 // Session is not closed while stopping the GC.
+// This function satisfy you to not pass nil value to the function as parameter
+// e.g (usage) :
+// configure with defaults, just call;
+// NewMongoCacheWithTTL(session)
+//
+// configure ttl duration with;
+// NewMongoCacheWithTTL(session, func(m *MongoCache) {
+// m.TTL = 2 * time.Minute
+// })
+//
+// configure collection name with;
+// NewMongoCacheWithTTL(session, func(m *MongoCache) {
+// m.CollectionName = "MongoCacheCollectionName"
+// })
 func NewMongoCacheWithTTL(session *mgo.Session, configs ...func(*MongoCache)) Cache {
 	mc := &MongoCache{
 		mongeSession:   session,
 		TTL:            defaultExpireDuration,
-		CollectionName: keyValueColl,
+		CollectionName: defaultKeyValueColl,
 		GCInterval:     time.Minute,
 		StartGC:        false,
 	}
@@ -59,6 +73,14 @@ func NewMongoCacheWithTTL(session *mgo.Session, configs ...func(*MongoCache)) Ca
 	}
 
 	return mc
+}
+
+// WithStartGC adds the given value to the WithStartGC
+// this is an external way to change WithStartGC value as true
+// recommended way is : add together with NewMongoCacheWithTTL()
+func (m *MongoCache) WithStartGC(isStart bool) *MongoCache {
+	m.StartGC = isStart
+	return m
 }
 
 // Get returns a value of a given key if it exists
