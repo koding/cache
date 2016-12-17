@@ -1,8 +1,14 @@
 package cache
 
-import "time"
+import (
+	"time"
+
+	mgo "gopkg.in/mgo.v2"
+)
 
 var (
+	defaultSession = &mgo.Session{}
+
 	// config options for MongoCache
 	ttl = func(m *MongoCache) {
 		m.TTL = 2 * time.Minute
@@ -22,18 +28,18 @@ var (
 )
 
 func TestMongoCacheConfig() {
-	defaultConfig := NewMongoCacheWithTTL(session)
+	defaultConfig := NewMongoCacheWithTTL(defaultSession)
 	if defaultConfig == nil {
 		t.Fatal("config should not be nil")
 	}
-	configTTL := NewMongoCacheWithTTL(session, ttl)
+	configTTL := NewMongoCacheWithTTL(defaultSession, ttl)
 	if configTTL == nil {
 		t.Fatal("ttl config should not be nil")
 	}
 	if configTTL.TTL != time.Minute*2 {
 		t.Fatal("config ttl time should equal 2 minutes")
 	}
-	config := NewMongoCacheWithTTL(session, collection, startGC)
+	config := NewMongoCacheWithTTL(defaultSession, collection, startGC)
 	if config == nil {
 		t.Fatal("config should not be nil")
 	}
