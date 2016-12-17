@@ -9,13 +9,17 @@ import (
 
 // MongoCache holds the cache values that will be stored in mongoDB
 type MongoCache struct {
+	// mongeSession specifies the mongoDB connection
 	mongeSession *mgo.Session
-	// cache holds the cache data
 
+	// CollectionName speficies the optional collection name for mongoDB
+	// if CollectionName is not set, then default value will be set
 	CollectionName string
+
 	// ttl is a duration for a cache key to expire
 	TTL time.Duration
 
+	// GCInterval specifies the time duration for garbage collector time interval
 	GCInterval time.Duration
 
 	// StartGC starts the garbage collector and deletes the
@@ -32,6 +36,8 @@ type MongoCache struct {
 	// read/write requests for cache
 	sync.RWMutex
 }
+
+type option func(*MongoCache)
 
 // NewMongoCacheWithTTL creates a caching layer backed by mongo. TTL's are
 // managed either by a background cleaner or document is removed on the Get
@@ -55,7 +61,7 @@ type MongoCache struct {
 // NewMongoCacheWithTTL(session, func(m *MongoCache) {
 // m.CollectionName = "MongoCacheCollectionName"
 // })
-func NewMongoCacheWithTTL(session *mgo.Session, configs ...func(*MongoCache)) Cache {
+func NewMongoCacheWithTTL(session *mgo.Session, configs ...option) Cache {
 	mc := &MongoCache{
 		mongeSession:   session,
 		TTL:            defaultExpireDuration,
@@ -69,7 +75,7 @@ func NewMongoCacheWithTTL(session *mgo.Session, configs ...func(*MongoCache)) Ca
 	}
 
 	if mc.StartGC {
-		mc.StartGCol(mc.GCInterval)
+		mc.StartGCollector(mc.GCInterval)
 	}
 
 	return mc
@@ -110,8 +116,9 @@ func (m *MongoCache) set(key string, value interface{}) error {
 	return m.CreateKeyValueWithExpiration(kv)
 }
 
-// StartGCol starts the garbage collector with given time interval
-func (m *MongoCache) StartGCol(gcInterval time.Duration) {
+// StartGCollector starts the garbage collector with given time interval
+// The expired data will be checked & deleted with given interval time
+func (m *MongoCache) StartGCollector(gcInterval time.Duration) {
 	if gcInterval <= 0 {
 		return
 	}
