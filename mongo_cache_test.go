@@ -1,6 +1,7 @@
 package cache
 
 import (
+	"testing"
 	"time"
 
 	mgo "gopkg.in/mgo.v2"
@@ -27,7 +28,7 @@ var (
 	}
 )
 
-func TestMongoCacheConfig() {
+func TestMongoCacheConfig(t *testing.T) {
 	defaultConfig := NewMongoCacheWithTTL(defaultSession)
 	if defaultConfig == nil {
 		t.Fatal("config should not be nil")

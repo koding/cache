@@ -61,7 +61,7 @@ type option func(*MongoCache)
 // NewMongoCacheWithTTL(session, func(m *MongoCache) {
 // m.CollectionName = "MongoCacheCollectionName"
 // })
-func NewMongoCacheWithTTL(session *mgo.Session, configs ...option) Cache {
+func NewMongoCacheWithTTL(session *mgo.Session, configs ...option) *MongoCache {
 	mc := &MongoCache{
 		mongeSession:   session,
 		TTL:            defaultExpireDuration,
