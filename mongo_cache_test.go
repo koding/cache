@@ -51,3 +51,36 @@ func TestMongoCacheConfig(t *testing.T) {
 		t.Fatal("config StartGC option should not be true")
 	}
 }
+
+func TestMongoSetOptionFuncs(t *testing.T) {
+	defaultConfig := NewMongoCacheWithTTL(defaultSession)
+	if defaultConfig == nil {
+		t.Fatal("config should not be nil")
+	}
+
+	duration := time.Minute * 3
+	configTTL := NewMongoCacheWithTTL(defaultSession, SetTTL(duration))
+	if configTTL == nil {
+		t.Fatal("ttl config should not be nil")
+	}
+	if configTTL.TTL != duration {
+		t.Fatal("config ttl time should equal 2 minutes")
+	}
+
+	// check multiple options
+	collName := "testingCollectionName"
+	config := NewMongoCacheWithTTL(defaultSession, SetCollectionName(collName), SetGCInterval(duration), EnableStartGC())
+	if config == nil {
+		t.Fatal("config should not be nil")
+	}
+	if config.CollectionName != collName {
+		t.Fatal("config collection name should equal 'TestCollectionName'")
+	}
+	if config.StartGC != true {
+		t.Fatal("config StartGC option should not be true")
+	}
+
+	if config.GCInterval != duration {
+		t.Fatal("config GCInterval option should equal", duration)
+	}
+}
