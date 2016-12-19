@@ -192,3 +192,52 @@ func TestMongoCacheTTL(t *testing.T) {
 		t.Fatal("error should equal", mgo.ErrNotFound, " but got:", err)
 	}
 }
+
+// TestMongoCacheGC tests the garbage collector logic
+// Mainly tests the GCInterval & StartGC options
+func TestMongoCacheGC(t *testing.T) {
+	// duration specifies the time duration to hold the data in mongo
+	// after the duration interval, data will be deleted from mongoDB
+	duration := time.Second * 10
+	defaultConfig := NewMongoCacheWithTTL(session, SetTTL(duration/2), SetGCInterval(duration), EnableStartGC())
+	if defaultConfig == nil {
+		t.Fatal("config should not be nil")
+	}
+	key := bson.NewObjectId().Hex()
+	value := bson.NewObjectId().Hex()
+	key1 := bson.NewObjectId().Hex()
+	value1 := bson.NewObjectId().Hex()
+
+	err := defaultConfig.Set(key, value)
+	if err != nil {
+		t.Fatal("error should be nil:", err)
+	}
+	err = defaultConfig.Set(key1, value1)
+	if err != nil {
+		t.Fatal("error should be nil:", err)
+	}
+	data, err := defaultConfig.Get(key)
+	if err != nil {
+		t.Fatal("error should be nil:", err)
+	}
+	if data != value {
+		t.Fatal("data should equal:", value, ", but got:", data)
+	}
+	data1, err := defaultConfig.Get(key1)
+	if err != nil {
+		t.Fatal("error should be nil:", err)
+	}
+	if data1 != value1 {
+		t.Fatal("data should equal:", value1, ", but got:", data1)
+	}
+	time.Sleep(duration * 2)
+
+	_, err = defaultConfig.Get(key)
+	if err != mgo.ErrNotFound {
+		t.Fatal("error should equal", mgo.ErrNotFound, " but got:", err)
+	}
+	_, err = defaultConfig.Get(key1)
+	if err != mgo.ErrNotFound {
+		t.Fatal("error should equal", mgo.ErrNotFound, " but got:", err)
+	}
+}
