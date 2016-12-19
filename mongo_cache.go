@@ -5,6 +5,7 @@ import (
 	"time"
 
 	mgo "gopkg.in/mgo.v2"
+	"gopkg.in/mgo.v2/bson"
 )
 
 // MongoCache holds the cache values that will be stored in mongoDB
@@ -48,7 +49,9 @@ type Option func(*MongoCache)
 // The responsibility of stopping the GC process belongs to the user.
 //
 // Session is not closed while stopping the GC.
-// This function satisfy you to not pass nil value to the function as parameter
+//
+// This self-referential function satisfy you to avoid passing
+// nil value to the function as parameter
 // e.g (usage) :
 // configure with defaults, just call;
 // NewMongoCacheWithTTL(session)
@@ -57,6 +60,8 @@ type Option func(*MongoCache)
 // NewMongoCacheWithTTL(session, func(m *MongoCache) {
 // m.TTL = 2 * time.Minute
 // })
+// or
+// NewMongoCacheWithTTL(session, SetTTL(time.Minute * 2))
 //
 // configure collection name with;
 // NewMongoCacheWithTTL(session, func(m *MongoCache) {
@@ -146,7 +151,7 @@ func (m *MongoCache) WithStartGC(isStart bool) *MongoCache {
 
 // Get returns a value of a given key if it exists
 func (m *MongoCache) Get(key string) (interface{}, error) {
-	return m.GetKeyWithExpireCheck(key)
+	return m.extractValue(key)
 }
 
 // Set will persist a value to the cache or
@@ -162,6 +167,7 @@ func (m *MongoCache) Delete(key string) error {
 
 func (m *MongoCache) set(key string, value interface{}) error {
 	kv := &KeyValue{
+		ObjectId:  bson.NewObjectId(),
 		Key:       key,
 		Value:     value,
 		CreatedAt: time.Now().UTC(),
@@ -169,6 +175,17 @@ func (m *MongoCache) set(key string, value interface{}) error {
 	}
 
 	return m.CreateKeyValueWithExpiration(kv)
+}
+
+// extractValue extracts the value inside from struct and returns its value
+// instead of returning all struct
+func (m *MongoCache) extractValue(key string) (interface{}, error) {
+	data, err := m.GetKeyWithExpireCheck(key)
+	if err != nil {
+		return nil, err
+	}
+
+	return data.Value, nil
 }
 
 // StartGCollector starts the garbage collector with given time interval
