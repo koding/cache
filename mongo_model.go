@@ -22,24 +22,19 @@ var (
 // keyValueColl default collection name for mongoDB
 const defaultKeyValueColl = "jKeyValue"
 
-// CreateKeyValue c
-func (m *MongoCache) CreateKeyValue(k *KeyValue) error {
-	return m.createKeyValue(k)
-}
-
 // CreateKeyValueWithExpiration creates the key-value pair with default time constants
-func (m *MongoCache) CreateKeyValueWithExpiration(k *KeyValue) error {
+func (m *MongoCache) createKeyValueWithExpiration(k *KeyValue) error {
 	return m.createKeyValue(setDefaultDataTimes(k))
 }
 
-func (m *MongoCache) GetKeyWithExpireCheck(k string) (*KeyValue, error) {
-	key, err := m.GetKey(k)
+func (m *MongoCache) getKeyWithExpireCheck(k string) (*KeyValue, error) {
+	key, err := m.getKey(k)
 	if err != nil {
 		return nil, err
 	}
 
 	if key.ExpireAt.Before(time.Now().UTC()) {
-		if err := m.DeleteKey(k); err != nil {
+		if err := m.deleteKey(k); err != nil {
 			return nil, err
 		}
 		return nil, mgo.ErrNotFound
@@ -48,8 +43,8 @@ func (m *MongoCache) GetKeyWithExpireCheck(k string) (*KeyValue, error) {
 	return key, nil
 }
 
-// GetKey fetches the key with its key
-func (m *MongoCache) GetKey(key string) (*KeyValue, error) {
+// getKey fetches the key with its key
+func (m *MongoCache) getKey(key string) (*KeyValue, error) {
 	keyValue := new(KeyValue)
 
 	query := func(c *mgo.Collection) error {
@@ -73,8 +68,8 @@ func (m *MongoCache) UpdateKey(selector, update bson.M) error {
 	return m.run(m.CollectionName, query)
 }
 
-// DeleteKey removes the key-value from mongoDB
-func (m *MongoCache) DeleteKey(key string) error {
+// deleteKey removes the key-value from mongoDB
+func (m *MongoCache) deleteKey(key string) error {
 	selector := bson.M{"key": key}
 
 	query := func(c *mgo.Collection) error {
@@ -85,7 +80,7 @@ func (m *MongoCache) DeleteKey(key string) error {
 	return m.run(m.CollectionName, query)
 }
 
-func (m *MongoCache) DeleteExpiredKeys() error {
+func (m *MongoCache) deleteExpiredKeys() error {
 	var selector = bson.M{"expireAt": bson.M{
 		"$lte": time.Now().UTC(),
 	}}
