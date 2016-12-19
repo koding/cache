@@ -5,10 +5,13 @@ import (
 	"time"
 
 	mgo "gopkg.in/mgo.v2"
+	"gopkg.in/mgo.v2/bson"
 )
 
 var (
 	defaultSession = &mgo.Session{}
+
+	session = initMongo()
 
 	// config options for MongoCache
 	ttl = func(m *MongoCache) {
@@ -28,8 +31,20 @@ var (
 	}
 )
 
+func initMongo() *mgo.Session {
+	ses, err := mgo.Dial("127.0.0.1:27017/test")
+	if err != nil {
+		panic(err)
+	}
+
+	ses.SetSafe(&mgo.Safe{})
+	ses.SetMode(mgo.Strong, true)
+
+	return ses
+}
+
 func TestMongoCacheConfig(t *testing.T) {
-	defaultConfig := NewMongoCacheWithTTL(defaultSession)
+	defaultConfig := NewMongoCacheWithTTL(session)
 	if defaultConfig == nil {
 		t.Fatal("config should not be nil")
 	}
@@ -52,7 +67,7 @@ func TestMongoCacheConfig(t *testing.T) {
 	}
 }
 
-func TestMongoSetOptionFuncs(t *testing.T) {
+func TestMongoCacheSetOptionFuncs(t *testing.T) {
 	defaultConfig := NewMongoCacheWithTTL(defaultSession)
 	if defaultConfig == nil {
 		t.Fatal("config should not be nil")
@@ -82,5 +97,41 @@ func TestMongoSetOptionFuncs(t *testing.T) {
 
 	if config.GCInterval != duration {
 		t.Fatal("config GCInterval option should equal", duration)
+	}
+}
+
+func TestMongoCacheGet(t *testing.T) {
+	defaultConfig := NewMongoCacheWithTTL(session)
+	if defaultConfig == nil {
+		t.Fatal("config should not be nil")
+	}
+
+	_, err := defaultConfig.Get("test")
+	if err != mgo.ErrNotFound {
+		t.Fatal("error is:", err)
+	}
+}
+
+func TestMongoCacheSet(t *testing.T) {
+	defaultConfig := NewMongoCacheWithTTL(session)
+	if defaultConfig == nil {
+		t.Fatal("config should not be nil")
+	}
+	key := bson.NewObjectId().Hex()
+	value := bson.NewObjectId().Hex()
+
+	err := defaultConfig.Set(key, value)
+	if err != nil {
+		t.Fatal("error should be nil:", err)
+	}
+	data, err := defaultConfig.Get(key)
+	if err != nil {
+		t.Fatal("error should be nil:", err)
+	}
+	if data == nil {
+		t.Fatal("data should not be nil")
+	}
+	if data != value {
+		t.Fatal("data should equal:", value, ", but got:", data)
 	}
 }
