@@ -217,14 +217,14 @@ func (m *MongoCache) StartGCollector(gcInterval time.Duration) {
 	}()
 }
 
-// StopGC stops sweeping goroutine.
-func (r *MemoryTTL) StopGCol() {
-	if r.gcTicker != nil {
-		r.Lock()
-		r.gcTicker.Stop()
-		r.gcTicker = nil
-		close(r.done)
-		r.done = nil
-		r.Unlock()
+// StopGCol stops sweeping goroutine.
+func (m *MongoCache) StopGCol() {
+	if m.gcTicker != nil {
+		m.Lock()
+		m.gcTicker.Stop()
+		m.gcTicker = nil
+		close(m.done)
+		m.done = nil
+		m.Unlock()
 	}
 }
