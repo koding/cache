@@ -96,7 +96,6 @@ func DisableStartGC() Option {
 func optionStartGC(b bool) Option {
 	return func(m *MongoCache) {
 		m.StartGC = b
-
 	}
 }
 
@@ -104,7 +103,6 @@ func optionStartGC(b bool) Option {
 func SetTTL(duration time.Duration) Option {
 	return func(m *MongoCache) {
 		m.TTL = duration
-
 	}
 }
 
@@ -112,7 +110,6 @@ func SetTTL(duration time.Duration) Option {
 func SetGCInterval(duration time.Duration) Option {
 	return func(m *MongoCache) {
 		m.GCInterval = duration
-
 	}
 }
 
@@ -120,7 +117,6 @@ func SetGCInterval(duration time.Duration) Option {
 func SetCollectionName(collName string) Option {
 	return func(m *MongoCache) {
 		m.CollectionName = collName
-
 	}
 }
 
