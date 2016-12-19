@@ -84,12 +84,12 @@ func NewMongoCacheWithTTL(session *mgo.Session, configs ...Option) *MongoCache {
 
 // EnableStartGC enables the garbage collector in MongoCache struct
 func EnableStartGC() Option {
-	optionStartGC(true)
+	return optionStartGC(true)
 }
 
 // DisableStartGC disables the garbage collector in MongoCache struct
 func DisableStartGC() Option {
-	optionStartGC(false)
+	return optionStartGC(false)
 }
 
 // optionStartGC chooses the garbage collector option in MongoCache struct
