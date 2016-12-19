@@ -162,7 +162,7 @@ func (m *MongoCache) Set(key string, value interface{}) error {
 
 // Delete deletes a given key if exists
 func (m *MongoCache) Delete(key string) error {
-	return m.DeleteKey(key)
+	return m.deleteKey(key)
 }
 
 func (m *MongoCache) set(key string, value interface{}) error {
@@ -174,13 +174,13 @@ func (m *MongoCache) set(key string, value interface{}) error {
 		ExpireAt:  time.Now().UTC().Add(m.TTL),
 	}
 
-	return m.CreateKeyValueWithExpiration(kv)
+	return m.createKeyValueWithExpiration(kv)
 }
 
 // extractValue extracts the value inside from struct and returns its value
 // instead of returning all struct
 func (m *MongoCache) extractValue(key string) (interface{}, error) {
-	data, err := m.GetKeyWithExpireCheck(key)
+	data, err := m.getKeyWithExpireCheck(key)
 	if err != nil {
 		return nil, err
 	}
@@ -208,7 +208,7 @@ func (m *MongoCache) StartGCollector(gcInterval time.Duration) {
 			select {
 			case <-ticker.C:
 				m.Lock()
-				m.DeleteExpiredKeys()
+				m.deleteExpiredKeys()
 				m.Unlock()
 			case <-done:
 				return
