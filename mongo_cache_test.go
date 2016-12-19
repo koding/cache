@@ -167,7 +167,7 @@ func TestMongoCacheDelete(t *testing.T) {
 func TestMongoCacheTTL(t *testing.T) {
 	// duration specifies the time duration to hold the data in mongo
 	// after the duration interval, data will be deleted from mongoDB
-	duration := time.Second * 20
+	duration := time.Second * 10
 	defaultConfig := NewMongoCacheWithTTL(session, SetTTL(duration))
 	if defaultConfig == nil {
 		t.Fatal("config should not be nil")
