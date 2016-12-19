@@ -135,3 +135,31 @@ func TestMongoCacheSet(t *testing.T) {
 		t.Fatal("data should equal:", value, ", but got:", data)
 	}
 }
+
+func TestMongoCacheDelete(t *testing.T) {
+	defaultConfig := NewMongoCacheWithTTL(session)
+	if defaultConfig == nil {
+		t.Fatal("config should not be nil")
+	}
+	key := bson.NewObjectId().Hex()
+	value := bson.NewObjectId().Hex()
+
+	err := defaultConfig.Set(key, value)
+	if err != nil {
+		t.Fatal("error should be nil:", err)
+	}
+	data, err := defaultConfig.Get(key)
+	if err != nil {
+		t.Fatal("error should be nil:", err)
+	}
+	if data == nil {
+		t.Fatal("data should not be nil")
+	}
+	if data != value {
+		t.Fatal("data should equal:", value, ", but got:", data)
+	}
+	err = defaultConfig.Delete(key)
+	if err != nil {
+		t.Fatal("err should be nil, but got", err)
+	}
+}
