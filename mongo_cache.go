@@ -37,7 +37,8 @@ type MongoCache struct {
 	sync.RWMutex
 }
 
-type option func(*MongoCache)
+// Option sets the options specified.
+type Option func(*MongoCache)
 
 // NewMongoCacheWithTTL creates a caching layer backed by mongo. TTL's are
 // managed either by a background cleaner or document is removed on the Get
@@ -61,7 +62,7 @@ type option func(*MongoCache)
 // NewMongoCacheWithTTL(session, func(m *MongoCache) {
 // m.CollectionName = "MongoCacheCollectionName"
 // })
-func NewMongoCacheWithTTL(session *mgo.Session, configs ...option) *MongoCache {
+func NewMongoCacheWithTTL(session *mgo.Session, configs ...Option) *MongoCache {
 	mc := &MongoCache{
 		mongeSession:   session,
 		TTL:            defaultExpireDuration,
@@ -81,9 +82,57 @@ func NewMongoCacheWithTTL(session *mgo.Session, configs ...option) *MongoCache {
 	return mc
 }
 
+// EnableStartGC enables the garbage collector in MongoCache struct
+func EnableStartGC() Option {
+	optionStartGC(true)
+}
+
+// DisableStartGC disables the garbage collector in MongoCache struct
+func DisableStartGC() Option {
+	optionStartGC(false)
+}
+
+// optionStartGC chooses the garbage collector option in MongoCache struct
+func optionStartGC(b bool) Option {
+	return func(m *MongoCache) {
+		m.StartGC = b
+
+	}
+}
+
+// SetTTL sets the ttl duration in MongoCache as option
+func SetTTL(duration time.Duration) Option {
+	return func(m *MongoCache) {
+		m.TTL = duration
+
+	}
+}
+
+// SetGCInterval sets the garbage collector interval in MongoCache struct as option
+func SetGCInterval(duration time.Duration) Option {
+	return func(m *MongoCache) {
+		m.GCInterval = duration
+
+	}
+}
+
+// SetCollectionName sets the collection name for mongoDB in MongoCache struct as option
+func SetCollectionName(collName string) Option {
+	return func(m *MongoCache) {
+		m.CollectionName = collName
+
+	}
+}
+
 // WithStartGC adds the given value to the WithStartGC
 // this is an external way to change WithStartGC value as true
-// recommended way is : add together with NewMongoCacheWithTTL()
+// StartGC option is false as default
+// usage:
+// NewMongoCacheWithTTL(config).WithStartGC(true)
+//
+// recommended way is :
+// to enable StartGC, use EnableStartGC
+// add EnableStartGC as option NewMongoCacheWithTTL(&mgo.session{}, EnableStartGC())
 func (m *MongoCache) WithStartGC(isStart bool) *MongoCache {
 	m.StartGC = isStart
 	return m
