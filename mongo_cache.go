@@ -83,11 +83,15 @@ func NewMongoCacheWithTTL(session *mgo.Session, configs ...Option) *MongoCache {
 }
 
 // EnableStartGC enables the garbage collector in MongoCache struct
+// usage:
+// NewMongoCacheWithTTL(mongoSession, EnableStartGC())
 func EnableStartGC() Option {
 	return optionStartGC(true)
 }
 
 // DisableStartGC disables the garbage collector in MongoCache struct
+// usage:
+// NewMongoCacheWithTTL(mongoSession, DisableStartGC())
 func DisableStartGC() Option {
 	return optionStartGC(false)
 }
@@ -100,6 +104,8 @@ func optionStartGC(b bool) Option {
 }
 
 // SetTTL sets the ttl duration in MongoCache as option
+// usage:
+// NewMongoCacheWithTTL(mongoSession, SetTTL(time*Minute))
 func SetTTL(duration time.Duration) Option {
 	return func(m *MongoCache) {
 		m.TTL = duration
@@ -107,6 +113,8 @@ func SetTTL(duration time.Duration) Option {
 }
 
 // SetGCInterval sets the garbage collector interval in MongoCache struct as option
+// usage:
+// NewMongoCacheWithTTL(mongoSession, SetGCInterval(time*Minute))
 func SetGCInterval(duration time.Duration) Option {
 	return func(m *MongoCache) {
 		m.GCInterval = duration
@@ -114,6 +122,8 @@ func SetGCInterval(duration time.Duration) Option {
 }
 
 // SetCollectionName sets the collection name for mongoDB in MongoCache struct as option
+// usage:
+// NewMongoCacheWithTTL(mongoSession, SetCollectionName("mongoCollName"))
 func SetCollectionName(collName string) Option {
 	return func(m *MongoCache) {
 		m.CollectionName = collName
