@@ -7,8 +7,9 @@ import (
 	"gopkg.in/mgo.v2/bson"
 )
 
+// KeyValue holds the key-value pair for mongo cache
 type KeyValue struct {
-	ObjectId  bson.ObjectId `bson:"_id" json:"_id"`
+	ObjectID  bson.ObjectId `bson:"_id" json:"_id"`
 	Key       string        `bson:"key" json:"key"`
 	Value     interface{}   `bson:"value" json:"value"`
 	CreatedAt time.Time     `bson:"createdAt" json:"createdAt"`
@@ -122,14 +123,6 @@ func insertQuery(data interface{}) func(*mgo.Collection) error {
 // MongoDB helper functions
 // no need to be exported functions
 //
-
-func (m *MongoCache) close() {
-	m.mongeSession.Close()
-}
-
-func (m *MongoCache) refresh() {
-	m.mongeSession.Refresh()
-}
 
 func (m *MongoCache) copy() *mgo.Session {
 	return m.mongeSession.Copy()

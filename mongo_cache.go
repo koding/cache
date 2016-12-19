@@ -167,7 +167,7 @@ func (m *MongoCache) Delete(key string) error {
 
 func (m *MongoCache) set(key string, value interface{}) error {
 	kv := &KeyValue{
-		ObjectId:  bson.NewObjectId(),
+		ObjectID:  bson.NewObjectId(),
 		Key:       key,
 		Value:     value,
 		CreatedAt: time.Now().UTC(),
