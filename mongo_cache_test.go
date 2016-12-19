@@ -163,3 +163,32 @@ func TestMongoCacheDelete(t *testing.T) {
 		t.Fatal("err should be nil, but got", err)
 	}
 }
+
+func TestMongoCacheTTL(t *testing.T) {
+	// duration specifies the time duration to hold the data in mongo
+	// after the duration interval, data will be deleted from mongoDB
+	duration := time.Second * 20
+	defaultConfig := NewMongoCacheWithTTL(session, SetTTL(duration))
+	if defaultConfig == nil {
+		t.Fatal("config should not be nil")
+	}
+	key := bson.NewObjectId().Hex()
+	value := bson.NewObjectId().Hex()
+
+	err := defaultConfig.Set(key, value)
+	if err != nil {
+		t.Fatal("error should be nil:", err)
+	}
+	data, err := defaultConfig.Get(key)
+	if err != nil {
+		t.Fatal("error should be nil:", err)
+	}
+	if data != value {
+		t.Fatal("data should equal:", value, ", but got:", data)
+	}
+	time.Sleep(duration)
+	_, err = defaultConfig.Get(key)
+	if err != mgo.ErrNotFound {
+		t.Fatal("error should equal", mgo.ErrNotFound, " but got:", err)
+	}
+}
