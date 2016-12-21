@@ -1,11 +1,18 @@
 package cache
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
 	mgo "gopkg.in/mgo.v2"
-	"gopkg.in/mgo.v2/bson"
+)
+
+const (
+	defaultExpireDuration = time.Minute
+	defaultCollectionName = "jCache"
+	defaultGCInterval     = time.Minute
+	indexExpireAt         = "expireAt"
 )
 
 // MongoCache holds the cache values that will be stored in mongoDB
@@ -23,9 +30,9 @@ type MongoCache struct {
 	// GCInterval specifies the time duration for garbage collector time interval
 	GCInterval time.Duration
 
-	// StartGC starts the garbage collector and deletes the
+	// GCStart starts the garbage collector and deletes the
 	// expired keys from mongo with given time interval
-	StartGC bool
+	GCStart bool
 
 	// gcTicker controls gc intervals
 	gcTicker *time.Ticker
@@ -58,53 +65,66 @@ type Option func(*MongoCache)
 //
 // configure ttl duration with;
 // NewMongoCacheWithTTL(session, func(m *MongoCache) {
-// m.TTL = 2 * time.Minute
+// 		m.TTL = 2 * time.Minute
 // })
 // or
 // NewMongoCacheWithTTL(session, SetTTL(time.Minute * 2))
 //
 // configure collection name with;
 // NewMongoCacheWithTTL(session, func(m *MongoCache) {
-// m.CollectionName = "MongoCacheCollectionName"
+// 		m.CollectionName = "MongoCacheCollectionName"
 // })
 func NewMongoCacheWithTTL(session *mgo.Session, configs ...Option) *MongoCache {
+	if session == nil {
+		panic("session must be set")
+	}
+
 	mc := &MongoCache{
 		mongeSession:   session,
 		TTL:            defaultExpireDuration,
-		CollectionName: defaultKeyValueColl,
-		GCInterval:     time.Minute,
-		StartGC:        false,
+		CollectionName: defaultCollectionName,
+		GCInterval:     defaultGCInterval,
+		GCStart:        false,
 	}
 
 	for _, configFunc := range configs {
 		configFunc(mc)
 	}
 
-	if mc.StartGC {
-		mc.StartGCollector(mc.GCInterval)
+	if mc.GCStart {
+		mc.StartGC(mc.GCInterval)
 	}
 
 	return mc
 }
 
-// EnableStartGC enables the garbage collector in MongoCache struct
+// MustEnsureIndexExpireAt ensures the expireAt index
 // usage:
-// NewMongoCacheWithTTL(mongoSession, EnableStartGC())
-func EnableStartGC() Option {
-	return optionStartGC(true)
-}
-
-// DisableStartGC disables the garbage collector in MongoCache struct
-// usage:
-// NewMongoCacheWithTTL(mongoSession, DisableStartGC())
-func DisableStartGC() Option {
-	return optionStartGC(false)
-}
-
-// optionStartGC chooses the garbage collector option in MongoCache struct
-func optionStartGC(b bool) Option {
+// NewMongoCacheWithTTL(mongoSession, MustEnsureIndexExpireAt())
+func MustEnsureIndexExpireAt() Option {
 	return func(m *MongoCache) {
-		m.StartGC = b
+		if err := m.EnsureIndex(); err != nil {
+			panic(fmt.Sprintf("index must ensure %q", err))
+		}
+	}
+}
+
+// EnsureIndex ensures the index with expireAt key
+func (m *MongoCache) EnsureIndex() error {
+	query := func(c *mgo.Collection) error {
+		_, err := c.EnsureIndexKey(indexExpireAt)
+		return err
+	}
+
+	return m.run(m.CollectionName, query)
+}
+
+// StartGC enables the garbage collector in MongoCache struct
+// usage:
+// NewMongoCacheWithTTL(mongoSession, StartGC())
+func StartGC() Option {
+	return func(m *MongoCache) {
+		m.GCStart = true
 	}
 }
 
@@ -135,52 +155,13 @@ func SetCollectionName(collName string) Option {
 	}
 }
 
-// WithStartGC adds the given value to the WithStartGC
-// this is an external way to change WithStartGC value as true
-// StartGC option is false as default
-// usage:
-// NewMongoCacheWithTTL(config).WithStartGC(true)
-//
-// recommended way is :
-// to enable StartGC, use EnableStartGC
-// add EnableStartGC as option NewMongoCacheWithTTL(&mgo.session{}, EnableStartGC())
-func (m *MongoCache) WithStartGC(isStart bool) *MongoCache {
-	m.StartGC = isStart
-	return m
-}
-
 // Get returns a value of a given key if it exists
 func (m *MongoCache) Get(key string) (interface{}, error) {
-	return m.extractValue(key)
-}
-
-// Set will persist a value to the cache or
-// override existing one with the new one
-func (m *MongoCache) Set(key string, value interface{}) error {
-	return m.set(key, value)
-}
-
-// Delete deletes a given key if exists
-func (m *MongoCache) Delete(key string) error {
-	return m.deleteKey(key)
-}
-
-func (m *MongoCache) set(key string, value interface{}) error {
-	kv := &KeyValue{
-		ObjectID:  bson.NewObjectId(),
-		Key:       key,
-		Value:     value,
-		CreatedAt: time.Now().UTC(),
-		ExpireAt:  time.Now().UTC().Add(m.TTL),
+	data, err := m.get(key)
+	if err == mgo.ErrNotFound {
+		return nil, ErrNotFound
 	}
 
-	return m.createKeyValueWithExpiration(kv)
-}
-
-// extractValue extracts the value inside from struct and returns its value
-// instead of returning all struct
-func (m *MongoCache) extractValue(key string) (interface{}, error) {
-	data, err := m.getKeyWithExpireCheck(key)
 	if err != nil {
 		return nil, err
 	}
@@ -188,9 +169,26 @@ func (m *MongoCache) extractValue(key string) (interface{}, error) {
 	return data.Value, nil
 }
 
-// StartGCollector starts the garbage collector with given time interval
-// The expired data will be checked & deleted with given interval time
-func (m *MongoCache) StartGCollector(gcInterval time.Duration) {
+// Set will persist a value to the cache or override existing one with the new
+// one
+func (m *MongoCache) Set(key string, value interface{}) error {
+	return m.set(key, m.TTL, value)
+}
+
+// SetEx will persist a value to the cache or override existing one with the new
+// one with ttl duration
+func (m *MongoCache) SetEx(key string, duration time.Duration, value interface{}) error {
+	return m.set(key, duration, value)
+}
+
+// Delete deletes a given key if exists
+func (m *MongoCache) Delete(key string) error {
+	return m.delete(key)
+}
+
+// StartGC starts the garbage collector with given time interval The
+// expired data will be checked & deleted with given interval time
+func (m *MongoCache) StartGC(gcInterval time.Duration) {
 	if gcInterval <= 0 {
 		return
 	}
@@ -217,8 +215,8 @@ func (m *MongoCache) StartGCollector(gcInterval time.Duration) {
 	}()
 }
 
-// StopGCol stops sweeping goroutine.
-func (m *MongoCache) StopGCol() {
+// StopGC stops sweeping goroutine.
+func (m *MongoCache) StopGC() {
 	if m.gcTicker != nil {
 		m.Lock()
 		m.gcTicker.Stop()
