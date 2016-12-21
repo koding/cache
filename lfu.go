@@ -2,6 +2,7 @@ package cache
 
 import "sync"
 
+// LFU holds the Least frequently used cache values
 type LFU struct {
 	// Mutex is used for handling the concurrent
 	// read/write requests for cache

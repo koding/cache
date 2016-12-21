@@ -112,8 +112,7 @@ func MustEnsureIndexExpireAt() Option {
 // EnsureIndex ensures the index with expireAt key
 func (m *MongoCache) EnsureIndex() error {
 	query := func(c *mgo.Collection) error {
-		_, err := c.EnsureIndexKey(indexExpireAt)
-		return err
+		return c.EnsureIndexKey(indexExpireAt)
 	}
 
 	return m.run(m.CollectionName, query)
