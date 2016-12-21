@@ -7,49 +7,23 @@ import (
 	"gopkg.in/mgo.v2/bson"
 )
 
-// KeyValue holds the key-value pair for mongo cache
-type KeyValue struct {
-	ObjectID  bson.ObjectId `bson:"_id" json:"_id"`
-	Key       string        `bson:"key" json:"key"`
-	Value     interface{}   `bson:"value" json:"value"`
-	CreatedAt time.Time     `bson:"createdAt" json:"createdAt"`
-	ExpireAt  time.Time     `bson:"expireAt" json:"expireAt"`
-}
-
-var (
-	defaultExpireDuration = time.Second * 60
-)
-
-// keyValueColl default collection name for mongoDB
-const defaultKeyValueColl = "jKeyValue"
-
-// CreateKeyValueWithExpiration creates the key-value pair with default time constants
-func (m *MongoCache) createKeyValueWithExpiration(k *KeyValue) error {
-	return m.createKeyValue(setDefaultDataTimes(k))
-}
-
-func (m *MongoCache) getKeyWithExpireCheck(k string) (*KeyValue, error) {
-	key, err := m.getKey(k)
-	if err != nil {
-		return nil, err
-	}
-
-	if key.ExpireAt.Before(time.Now().UTC()) {
-		if err := m.deleteKey(k); err != nil {
-			return nil, err
-		}
-		return nil, mgo.ErrNotFound
-	}
-
-	return key, nil
+// Document holds the key-value pair for mongo cache
+type Document struct {
+	Key      string      `bson:"_id" json:"_id"`
+	Value    interface{} `bson:"value" json:"value"`
+	ExpireAt time.Time   `bson:"expireAt" json:"expireAt"`
 }
 
 // getKey fetches the key with its key
-func (m *MongoCache) getKey(key string) (*KeyValue, error) {
-	keyValue := new(KeyValue)
+func (m *MongoCache) get(key string) (*Document, error) {
+	keyValue := new(Document)
 
 	query := func(c *mgo.Collection) error {
-		return c.Find(bson.M{"key": key}).One(&keyValue)
+		return c.Find(bson.M{
+			"_id": key,
+			"expireAt": bson.M{
+				"$gt": time.Now().UTC(),
+			}}).One(&keyValue)
 	}
 
 	err := m.run(m.CollectionName, query)
@@ -60,21 +34,25 @@ func (m *MongoCache) getKey(key string) (*KeyValue, error) {
 	return keyValue, nil
 }
 
-// UpdateKey updates the key-value in mongoDB
-func (m *MongoCache) UpdateKey(selector, update bson.M) error {
+func (m *MongoCache) set(key string, duration time.Duration, value interface{}) error {
+	update := bson.M{
+		"_id":      key,
+		"value":    value,
+		"expireAt": time.Now().Add(duration),
+	}
+
 	query := func(c *mgo.Collection) error {
-		return c.Update(selector, bson.M{"$set": update})
+		_, err := c.UpsertId(key, update)
+		return err
 	}
 
 	return m.run(m.CollectionName, query)
 }
 
 // deleteKey removes the key-value from mongoDB
-func (m *MongoCache) deleteKey(key string) error {
-	selector := bson.M{"key": key}
-
+func (m *MongoCache) delete(key string) error {
 	query := func(c *mgo.Collection) error {
-		err := c.Remove(selector)
+		err := c.RemoveId(key)
 		return err
 	}
 
@@ -94,43 +72,10 @@ func (m *MongoCache) deleteExpiredKeys() error {
 	return m.run(m.CollectionName, query)
 }
 
-func (m *MongoCache) createKeyValue(k *KeyValue) error {
-	k.CreatedAt = time.Now().UTC()
-	query := insertQuery(k)
-	return m.run(m.CollectionName, query)
-}
-
-func setDefaultDataTimes(k *KeyValue) *KeyValue {
-	if k.CreatedAt.IsZero() {
-		k.CreatedAt = time.Now().UTC()
-	}
-
-	// ExpireAt should be in the future as time
-	if k.ExpireAt.Before(time.Now().UTC()) || k.ExpireAt.IsZero() {
-		k.ExpireAt = k.CreatedAt.Add(defaultExpireDuration)
-	}
-
-	return k
-}
-
-func insertQuery(data interface{}) func(*mgo.Collection) error {
-	return func(c *mgo.Collection) error {
-		return c.Insert(data)
-	}
-}
-
-//
-// MongoDB helper functions
-// no need to be exported functions
-//
-
-func (m *MongoCache) copy() *mgo.Session {
-	return m.mongeSession.Copy()
-}
-
 func (m *MongoCache) run(collection string, s func(*mgo.Collection) error) error {
-	session := m.copy()
+	session := m.mongeSession.Copy()
 	defer session.Close()
+
 	c := session.DB("").C(collection)
 	return s(c)
 }
