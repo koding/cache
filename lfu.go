@@ -11,7 +11,7 @@ type LFU struct {
 	cache Cache
 }
 
-// NewLRU creates a thread-safe LRU cache
+// NewLFU creates a thread-safe LFU cache
 func NewLFU(size int) Cache {
 	return &LRU{
 		cache: NewLFUNoTS(size),
