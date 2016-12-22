@@ -2,9 +2,6 @@ language: go
 
 sudo: false
 
-services:
-  - mongodb
-
 install:
   - go get -t -v ./...
 

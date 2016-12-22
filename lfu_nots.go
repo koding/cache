@@ -2,7 +2,6 @@ package cache
 
 import "container/list"
 
-// LFUNoTS holds the cache struct
 type LFUNoTS struct {
 	// list holds all items in a linked list
 	frequencyList *list.List
@@ -33,7 +32,7 @@ type cacheItem struct {
 	freqElement *list.Element
 }
 
-// NewLFUNoTS creates a new LFU cache struct for further cache operations. Size
+// NewLRUNoTS creates a new LFU cache struct for further cache operations. Size
 // is used for limiting the upper bound of the cache
 func NewLFUNoTS(size int) Cache {
 	if size < 1 {
@@ -198,7 +197,7 @@ func (l *LFUNoTS) evict(e *list.Element) error {
 	}
 
 	// remove the first item of the linked list
-	for entry := range e.Value.(*entry).listEntry {
+	for entry, _ := range e.Value.(*entry).listEntry {
 		l.cache.Delete(entry.k)
 		l.remove(entry, e)
 		l.currentSize--

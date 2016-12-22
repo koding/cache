@@ -13,10 +13,9 @@ func NewMemoryNoTS() *MemoryNoTS {
 	}
 }
 
-// NewMemNoTSCache is a helper method to return a Cache interface, so callers
-// don't have to typecast
+// Helper method to return a Cache interface, so callers don't have to typecast
 func NewMemNoTSCache() Cache {
-	return NewMemoryNoTS()
+        return NewMemoryNoTS()
 }
 
 // Get returns a value of a given key if it exists

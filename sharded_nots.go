@@ -1,67 +1,59 @@
 package cache
 
-// ShardedNoTS ; the concept behind this storage is that each cache entry is
-// associated with a tenantID and this enables fast purging for just that
-// tenantID
+// The concept behind this storage is that each cache entry is associated with a tenantId
+// and this enables fast purging for just that tenantId
 type ShardedNoTS struct {
-	cache       map[string]Cache
-	itemCount   map[string]int
-	constructor func() Cache
+    cache       map[string]Cache
+    itemCount   map[string]int
+    constructor func() Cache
 }
 
-// NewShardedNoTS inits ShardedNoTS struct
 func NewShardedNoTS(c func() Cache) *ShardedNoTS {
-	return &ShardedNoTS{
-		constructor: c,
-		cache:       make(map[string]Cache),
-		itemCount:   make(map[string]int),
-	}
+    return &ShardedNoTS{
+        constructor: c,
+        cache:       make(map[string]Cache),
+        itemCount:   make(map[string]int),
+    }
 }
 
-// Get returns a value of a given key if it exists
-// and valid for the time being
-func (l *ShardedNoTS) Get(tenantID, key string) (interface{}, error) {
-	cache, ok := l.cache[tenantID]
-	if !ok {
-		return nil, ErrNotFound
-	}
+func (l *ShardedNoTS) Get(tenantId, key string) (interface{}, error) {
+    cache, ok := l.cache[tenantId]
+    if !ok {
+        return nil, ErrNotFound
+    }
 
-	return cache.Get(key)
+    return cache.Get(key)
 }
 
-// Set will persist a value to the cache or override existing one with the new
-// one
-func (l *ShardedNoTS) Set(tenantID, key string, val interface{}) error {
-	_, ok := l.cache[tenantID]
-	if !ok {
-		l.cache[tenantID] = l.constructor()
-		l.itemCount[tenantID] = 0
-	}
+func (l *ShardedNoTS) Set(tenantId, key string, val interface{}) error {
+    _, ok := l.cache[tenantId]
+    if !ok {
+        l.cache[tenantId] = l.constructor()
+        l.itemCount[tenantId] = 0
+    }
 
-	l.itemCount[tenantID]++
-	return l.cache[tenantID].Set(key, val)
+    l.itemCount[tenantId]++
+    return l.cache[tenantId].Set(key, val)
 }
 
-// Delete deletes a given key
-func (l *ShardedNoTS) Delete(tenantID, key string) error {
-	_, ok := l.cache[tenantID]
-	if !ok {
-		return nil
-	}
+func (l *ShardedNoTS) Delete(tenantId, key string) error {
+    _, ok := l.cache[tenantId]
+    if !ok {
+        return nil
+    }
 
-	l.itemCount[tenantID]--
+    l.itemCount[tenantId]--
 
-	if l.itemCount[tenantID] == 0 {
-		return l.DeleteShard(tenantID)
-	}
+    if l.itemCount[tenantId] == 0 {
+        return l.DeleteShard(tenantId)
+    }
 
-	return l.cache[tenantID].Delete(key)
+    return l.cache[tenantId].Delete(key)
 }
 
-// DeleteShard deletes the keys inside from maps of cache & itemCount
-func (l *ShardedNoTS) DeleteShard(tenantID string) error {
-	delete(l.cache, tenantID)
-	delete(l.itemCount, tenantID)
+func (l *ShardedNoTS) DeleteShard(tenantId string) error {
+    delete(l.cache, tenantId)
+    delete(l.itemCount, tenantId)
 
-	return nil
+    return nil
 }
