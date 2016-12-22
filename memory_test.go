@@ -7,6 +7,11 @@ func TestMemoryGetSet(t *testing.T) {
 	testCacheGetSet(t, cache)
 }
 
+func TestMemorySetNX(t *testing.T) {
+	cache := NewMemory()
+	testCacheSetNX(t, cache)
+}
+
 func TestMemoryDelete(t *testing.T) {
 	cache := NewMemory()
 	testCacheDelete(t, cache)

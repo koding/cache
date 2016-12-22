@@ -41,6 +41,14 @@ func (l *LRU) Set(key string, val interface{}) error {
 	return l.cache.Set(key, val)
 }
 
+// SetNX sets a value to the cache only if it does not already exist
+func (l *LRU) SetNX(key string, val interface{}) (bool, error) {
+	l.Lock()
+	defer l.Unlock()
+
+	return l.cache.SetNX(key, val)
+}
+
 // Delete deletes the given key-value pair from cache, this function doesnt
 // return an error if item is not in the cache
 func (l *LRU) Delete(key string) error {

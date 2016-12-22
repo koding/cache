@@ -37,6 +37,17 @@ func (r *MemoryNoTS) Set(key string, value interface{}) error {
 	return nil
 }
 
+// SetNX will persist a value to the cache only
+// if it does not already exist
+func (r *MemoryNoTS) SetNX(key string, value interface{}) (bool, error) {
+	_, err := r.Get(key)
+	if err == ErrNotFound {
+		return true, r.Set(key, value)
+	}
+
+	return false, err
+}
+
 // Delete deletes a given key, it doesnt return error if the item is not in the
 // system
 func (r *MemoryNoTS) Delete(key string) error {

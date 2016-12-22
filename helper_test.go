@@ -32,6 +32,44 @@ func testCacheGetSet(t *testing.T, cache Cache) {
 	}
 }
 
+func testCacheSetNX(t *testing.T, cache Cache) {
+	ok, err := cache.SetNX("test_key", "test_data")
+	if err != nil {
+		t.Fatal("should not give err while setting item")
+	}
+
+	if !ok {
+		t.Fatal("non-existing item should give true")
+	}
+
+	data, err := cache.Get("test_key")
+	if err != nil {
+		t.Fatal("test_key should be in the cache")
+	}
+
+	if data != "test_data" {
+		t.Fatal("data is not \"test_data\"")
+	}
+
+	ok, err = cache.SetNX("test_key", "test_data2")
+	if err != nil {
+		t.Fatal("should not give err while setting item")
+	}
+
+	if ok {
+		t.Fatal("existing item should give false")
+	}
+
+	data, err = cache.Get("test_key")
+	if err != nil {
+		t.Fatal("test_key should be in the cache")
+	}
+
+	if data != "test_data" {
+		t.Fatal("data is not \"test_data\"")
+	}
+}
+
 func testCacheNilValue(t *testing.T, cache Cache) {
 	err := cache.Set("test_key", nil)
 	if err != nil {
@@ -64,12 +102,12 @@ func testCacheDelete(t *testing.T, cache Cache) {
 
 	err := cache.Delete("test_key3")
 	if err != nil {
-		t.Fatal("non-exiting item should not give error")
+		t.Fatal("non-existing item should not give error")
 	}
 
 	err = cache.Delete("test_key")
 	if err != nil {
-		t.Fatal("exiting item should not give error")
+		t.Fatal("existing item should not give error")
 	}
 
 	data, err := cache.Get("test_key")

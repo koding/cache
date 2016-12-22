@@ -97,6 +97,16 @@ func (l *LRUNoTS) Set(key string, val interface{}) error {
 	return nil
 }
 
+// SetNX sets a value to the cache only if it does not already exist
+func (l *LRUNoTS) SetNX(key string, val interface{}) (bool, error) {
+	_, err := l.Get(key)
+	if err == ErrNotFound {
+		return true, l.Set(key, val)
+	}
+
+	return false, err
+}
+
 // Delete deletes the given key-value pair from cache, this function doesnt
 // return an error if item is not in the cache
 func (l *LRUNoTS) Delete(key string) error {
