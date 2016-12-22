@@ -109,15 +109,6 @@ func MustEnsureIndexExpireAt() Option {
 	}
 }
 
-// EnsureIndex ensures the index with expireAt key
-func (m *MongoCache) EnsureIndex() error {
-	query := func(c *mgo.Collection) error {
-		return c.EnsureIndexKey(indexExpireAt)
-	}
-
-	return m.run(m.CollectionName, query)
-}
-
 // StartGC enables the garbage collector in MongoCache struct
 // usage:
 // NewMongoCacheWithTTL(mongoSession, StartGC())
@@ -183,6 +174,15 @@ func (m *MongoCache) SetEx(key string, duration time.Duration, value interface{}
 // Delete deletes a given key if exists
 func (m *MongoCache) Delete(key string) error {
 	return m.delete(key)
+}
+
+// EnsureIndex ensures the index with expireAt key
+func (m *MongoCache) EnsureIndex() error {
+	query := func(c *mgo.Collection) error {
+		return c.EnsureIndexKey(indexExpireAt)
+	}
+
+	return m.run(m.CollectionName, query)
 }
 
 // StartGC starts the garbage collector with given time interval The
